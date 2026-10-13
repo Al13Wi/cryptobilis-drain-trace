@@ -5,360 +5,699 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CryptoBilis Drain Trace</title>
 <meta name="description" content="Independent on-chain trace of the October 2026 Ledger/CryptoBilis wallet drain: where the stolen funds went, built from public blockchain data.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #f6f7f9; --panel: #ffffff; --ink: #18202b; --muted: #5b6676; --line: #dfe3ea; --soft: #eef1f5;
-  --accent: #2f6fdb; --warn: #b4232c;
-  --k-victim: #8a94a6; --k-attacker: #d64545; --k-bridge: #3b7dd8; --k-swap: #17958a; --k-convert: #7b68d6;
-  --k-mixer: #9c3fc7; --k-exchange: #d4861a; --k-frozen: #2e9e5b; --k-unknown: #9aa0a6;
-  --edge: #9aa6b8;
+  --bg: #fbfbf9; --panel: #f2f2ee; --line: #d9d9d3; --line2: #9a9a93; --ink: #1d1d1b; --dim: #5c5c57; --faint: #9b9b95;
+  --hi: #000000; --inv: #fbfbf9; --acc: #c8761a; --acc-ink: #1d1d1b; --grid: #f1f1ec;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace; --sans: "IBM Plex Sans", system-ui, sans-serif;
+  color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0f1319; --panel: #171d26; --ink: #e6ebf2; --muted: #9aa6b8; --line: #2a3340; --soft: #1f2732;
-    --accent: #6ea2ff; --warn: #ff7b84; --edge: #55627a;
+    --bg: #0c0d0e; --panel: #131416; --line: #2a2c2f; --line2: #4a4d52; --ink: #d4d6d9; --dim: #8e9298; --faint: #5d6066;
+    --hi: #f4f5f6; --inv: #0c0d0e; --acc: #e3a04a; --acc-ink: #0c0d0e; --grid: #121315; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0f1319; --panel: #171d26; --ink: #e6ebf2; --muted: #9aa6b8; --line: #2a3340; --soft: #1f2732;
-  --accent: #6ea2ff; --warn: #ff7b84; --edge: #55627a;
+  --bg: #0c0d0e; --panel: #131416; --line: #2a2c2f; --line2: #4a4d52; --ink: #d4d6d9; --dim: #8e9298; --faint: #5d6066;
+  --hi: #f4f5f6; --inv: #0c0d0e; --acc: #e3a04a; --acc-ink: #0c0d0e; --grid: #121315; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--ink); }
-body { font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
-code, .mono { font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace; font-size: 0.86em; }
-.wrap { max-width: 1280px; margin: 0 auto; padding: 0 16px; }
-header { padding: 28px 0 8px; }
-h1 { font-size: 1.7rem; line-height: 1.2; margin: 0 0 6px; letter-spacing: -0.01em; }
-h2 { font-size: 1.2rem; margin: 0 0 12px; }
-h3 { font-size: 1rem; margin: 0 0 8px; }
-.sub { color: var(--muted); margin: 0; }
-.note { color: var(--muted); font-size: 0.86rem; }
-.chip { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--soft); border: 1px solid var(--line); font-size: 0.78rem; color: var(--muted); }
-.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
-.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
-.kpi .v { font-size: 1.55rem; font-weight: 650; letter-spacing: -0.01em; }
-.kpi .l { color: var(--muted); font-size: 0.85rem; }
-.kpi .d { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin: 0 0 16px; }
-.graph-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; }
-.graph-layout > * { min-width: 0; }
-.card, .kpi { min-width: 0; }
-.toolbar input[type="search"] { min-width: 0 !important; width: 100%; }
-#cy { width: 100%; height: 760px; border-radius: 10px; background: var(--soft); border: 1px solid var(--line); }
-.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
-.toolbar label { font-size: 0.85rem; color: var(--muted); }
-select, input[type="search"], button { font: inherit; font-size: 0.88rem; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 5px 9px; }
+body { font: 13px/1.5 var(--mono); }
+a { color: var(--hi); text-underline-offset: 2px; }
+button, input { font: inherit; font-size: 12px; color: var(--ink); background: var(--bg); border: 1px solid var(--line2); border-radius: 0; padding: 5px 10px; }
 button { cursor: pointer; }
-button:hover { border-color: var(--accent); }
-.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: 0.8rem; color: var(--muted); }
-.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; background: var(--c); }
-#panel { max-height: 820px; overflow: auto; }
-#panel .empty { color: var(--muted); }
-.kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-size: 0.88rem; margin: 8px 0 12px; }
-.kv dt { color: var(--muted); }
-.kv dd { margin: 0; }
-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+button:hover { border-color: var(--hi); }
+button[aria-pressed="true"] { background: var(--hi); color: var(--inv); border-color: var(--hi); }
+:focus-visible { outline: 2px solid var(--acc); outline-offset: 1px; }
+input::placeholder { color: var(--faint); }
+
+/* ---------- app frame ---------- */
+.app { height: 100vh; min-height: 560px; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; }
+.topbar { display: flex; flex-wrap: wrap; gap: 4px 18px; color: var(--dim); font-size: 12px; }
+.topbar .r { margin-left: auto; }
+.head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 22px; }
+.head .ttl { flex: 1 1 380px; min-width: 0; }
+.eyebrow { font-size: 11px; letter-spacing: .16em; color: var(--dim); }
+h1 { font: 700 20px/1.2 var(--mono); color: var(--hi); margin: 4px 0 0; letter-spacing: -.01em; }
+.snap { flex: 1 1 280px; min-width: 0; color: var(--dim); font-size: 12px; }
+.snap b { color: var(--ink); font-weight: 500; }
+.tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tools input { width: 210px; max-width: 100%; }
+.seg { display: inline-flex; }
+.seg button + button { border-left: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; color: var(--dim); font-size: 12px; }
+.legend > span { display: inline-flex; align-items: center; gap: 7px; }
+.ln { width: 28px; height: 0; border-top: 1.6px solid var(--ink); }
+.ln.h { border-top-style: dashed; }
+.ln.m { border-top: 2px dotted var(--ink); }
+.bx { width: 22px; height: 12px; border: 1px solid var(--ink); }
+.bx.held { background: var(--hi); border-color: var(--hi); }
+.bx.frz { background: repeating-linear-gradient(135deg, var(--hi) 0 3px, var(--bg) 3px 5px); border-color: var(--hi); }
+.bx.acc { background: var(--acc); border-color: var(--acc); }
+.bx.src { border-style: dashed; }
+.bx.svc { outline: 1px solid var(--ink); outline-offset: 2px; width: 18px; height: 9px; margin: 0 2px; }
+.stage { flex: 1; min-height: 380px; display: flex; border: 1px solid var(--line2); min-width: 0; position: relative; }
+.map { flex: 1; min-width: 0; position: relative; overflow: hidden; cursor: grab; touch-action: none; background: var(--bg); }
+.map.drag { cursor: grabbing; }
+.map svg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.map svg.far .elab:not(.on) { display: none; }
+.hint { position: absolute; left: 10px; bottom: 8px; color: var(--faint); font-size: 11.5px; pointer-events: none; background: var(--bg); padding: 0 4px; }
+.drawer { width: 360px; flex-shrink: 0; border-left: 1px solid var(--line2); padding: 14px 16px; overflow: auto; background: var(--bg); }
+.drawer h2 { font: 600 11.5px var(--mono); letter-spacing: .12em; color: var(--dim); margin: 0 0 6px; }
+.drawer .big { font: 700 15px var(--mono); color: var(--hi); word-break: break-all; margin: 4px 0; }
+.drawer p { font: 13.5px/1.55 var(--sans); color: var(--dim); margin: 8px 0; }
+.kv { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.kv > span:first-child { color: var(--dim); flex-shrink: 0; }
+.kv > span:last-child { text-align: right; min-width: 0; overflow-wrap: anywhere; }
+.sec { font: 500 11px var(--mono); letter-spacing: .14em; color: var(--dim); margin: 16px 0 4px; }
+.tag { display: inline-block; padding: 1px 6px; font-size: 11px; letter-spacing: .08em; background: var(--hi); color: var(--inv); margin-right: 4px; }
+.tag.acc { background: var(--acc); color: var(--acc-ink); }
+details.ed { padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 12px; font-variant-numeric: tabular-nums; }
+details.ed summary { cursor: pointer; list-style: none; }
+details.ed summary::-webkit-details-marker { display: none; }
+details.ed summary::before { content: "+ "; color: var(--dim); }
+details.ed[open] summary::before { content: "− "; }
+.ed .t, .mlist .t { color: var(--dim); }
+.ed .tx { display: block; margin: 4px 0 0 14px; color: var(--dim); font-size: 11px; overflow-wrap: anywhere; }
+.jump { background: none; border: 0; padding: 0; color: var(--hi); text-decoration: underline; text-underline-offset: 2px; font: inherit; cursor: pointer; }
+.mlist { font-size: 12px; }
+.mlist div { padding: 4px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.foot { display: flex; flex-wrap: wrap; gap: 4px 18px; color: var(--faint); font-size: 12px; }
+.foot .r { margin-left: auto; }
+
+/* ---------- report below the map ---------- */
+.report { max-width: 1240px; margin: 0 auto; padding: 28px 16px 48px; }
+.report h2 { font: 700 13px var(--mono); color: var(--hi); margin: 0 0 12px; letter-spacing: .12em; }
+.report .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+.report ul { margin: 0; padding-left: 18px; font: 14px/1.6 var(--sans); color: var(--ink); }
+.report li { margin: 5px 0; }
+.report li b { color: var(--hi); }
+.report .note { font: 13px/1.5 var(--sans); color: var(--dim); }
+.report section { border-top: 1px solid var(--line2); padding-top: 18px; margin-bottom: 30px; }
+.tbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+.tbar input[type="search"] { flex: 1 1 240px; }
+select { font: inherit; font-size: 12px; color: var(--ink); background: var(--bg); border: 1px solid var(--line2); padding: 5px 8px; border-radius: 0; }
+.tw { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
 th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--panel); }
-td.num, th.num { text-align: right; white-space: nowrap; }
-.tbl-wrap { overflow-x: auto; }
-.flows li { margin: 2px 0; }
-.flows { padding-left: 18px; margin: 4px 0 12px; font-size: 0.88rem; }
-.tag { display: inline-block; font-size: 0.72rem; padding: 0 6px; border-radius: 6px; border: 1px solid var(--line); color: var(--muted); }
-.tag.inf { border-color: var(--k-exchange); color: var(--k-exchange); }
-.tag.conf { border-color: var(--k-frozen); color: var(--k-frozen); }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-ul.tight { margin: 0; padding-left: 18px; }
-ul.tight li { margin: 4px 0; }
-.pager { display: flex; gap: 8px; align-items: center; margin-top: 8px; font-size: 0.85rem; color: var(--muted); }
-footer { color: var(--muted); font-size: 0.82rem; padding: 12px 0 40px; }
-.theme-toggle { float: right; }
-@media (max-width: 980px) {
-  .graph-layout { grid-template-columns: 1fr; }
-  #panel { max-height: none; }
-  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .grid2 { grid-template-columns: 1fr; }
+th { color: var(--dim); font-weight: 500; letter-spacing: .06em; }
+td.n, th.n { text-align: right; white-space: nowrap; }
+.pager { display: flex; gap: 10px; align-items: center; margin-top: 10px; color: var(--dim); font-size: 12px; }
+
+@media (max-width: 860px) {
+  .app { height: auto; min-height: 100vh; padding: 10px 12px; }
+  .stage { flex-direction: column; }
+  .map { flex: none; height: 64vh; min-height: 380px; }
+  .drawer { width: auto; border-left: 0; border-top: 1px solid var(--line2); max-height: 420px; }
+  .report .grid { grid-template-columns: 1fr; }
+  .topbar .r { margin-left: 0; }
 }
-@media (max-width: 520px) {
-  .toolbar > * { max-width: 100%; }
-  .toolbar h2 { width: 100%; }
-  #cy { height: min(70vh, 600px); }
-  .kpi .v { font-size: 1.25rem; }
-  h1 { font-size: 1.35rem; }
-}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <button class="theme-toggle" id="themeBtn" title="Toggle light/dark">◐</button>
-    <h1>Where did the Ledger / CryptoBilis money go?</h1>
-    <p class="sub">An independent trace of the 9 October 2026 wallet drain (devices sold by the reseller CryptoBilis), rebuilt from public blockchain data across six chains.</p>
-    <p class="note" id="asof"></p>
-  </header>
-
-  <section class="kpis" id="kpis"></section>
-
-  <section class="card">
-    <div class="toolbar">
-      <h2 style="margin:0 12px 0 0">Money-flow map</h2>
-      <label for="minUsd">Hide flows under</label>
-      <select id="minUsd">
-        <option value="0">nothing</option>
-        <option value="50000">$50k</option>
-        <option value="250000" selected>$250k</option>
-        <option value="1000000">$1M</option>
-      </select>
-      <label><input type="checkbox" id="showLabels" checked> amounts on arrows</label>
-      <button id="fitBtn">Fit</button>
+<div class="app">
+  <div class="topbar"><span>cryptobilis-drain-trace</span><span>·</span><span>public blockchain data</span><span class="r" id="rev"></span></div>
+  <div class="head">
+    <div class="ttl">
+      <div class="eyebrow">LEDGER / CRYPTOBILIS · WHERE THE STOLEN FUNDS WENT</div>
+      <h1>CryptoBilis drain, 9 Oct 2026</h1>
     </div>
-    <div class="graph-layout">
-      <div>
-        <div id="cy" role="img" aria-label="Flow graph of stolen funds from victims through attacker wallets and services to their current location"></div>
-        <div class="legend" id="legend"></div>
-        <p class="note">Left to right: victims → drain wallets → laundering hops on TRON → cross-chain services → attacker wallets on Ethereum → exits. Arrow width scales with the dollar value moved (at the time of each transfer). Click any box or arrow for details and addresses.</p>
-      </div>
-      <aside id="panel" class="card" style="margin:0"><p class="empty">Select a node or an arrow in the map.</p></aside>
+    <div class="snap" id="snap"></div>
+    <div class="tools">
+      <span class="seg" role="group" aria-label="view">
+        <button id="vGroups" aria-pressed="true" title="Grouped overview">groups</button><button id="vWallets" aria-pressed="false" title="Every wallet">wallets</button>
+      </span>
+      <button id="zin" aria-label="zoom in">+</button><button id="zout" aria-label="zoom out">−</button><button id="fit">fit</button>
+      <input id="find" type="search" placeholder="find address or tx hash" aria-label="find address or transaction">
+      <button id="theme" title="theme">theme: auto</button>
     </div>
-  </section>
+  </div>
+  <div class="legend">
+    <span><i class="ln"></i>confirmed</span><span><i class="ln h"></i>high-confidence match</span><span><i class="ln m"></i>medium</span>
+    <span><i class="bx held"></i>funds held now</span><span><i class="bx frz"></i>frozen</span><span><i class="bx acc"></i>held &amp; freezable</span>
+    <span><i class="bx src"></i>victims (totals)</span><span><i class="bx svc"></i>service / exchange</span>
+    <span>line width = dollar value · times UTC</span>
+  </div>
+  <div class="stage">
+    <div class="map" id="map" tabindex="0" aria-label="money-flow map; arrows pan, plus and minus zoom, 0 fits">
+      <svg id="svg" role="img" aria-label="Lanes per blockchain, columns per hop; boxes are wallets or services, curves are transfers"><defs></defs><g id="vp"></g></svg>
+      <div class="hint">drag to pan · wheel or pinch to zoom · click a box or a line</div>
+    </div>
+    <aside class="drawer" id="dr" aria-live="polite"></aside>
+  </div>
+  <div class="foot"><span>independent analysis · not an official statement of Ledger or any service</span><span class="r">scroll down for findings, leads and every transfer ↓</span></div>
+</div>
 
-  <section class="grid2">
-    <div class="card">
-      <h2>Key findings</h2>
-      <ul class="tight" id="findings">
-        <li><b>Most of the money is still visible.</b> About 82% of the stolen value sits in wallets the attacker controls, mostly as ETH and the 203.79 BTC that have never moved. Another 10% is frozen.</li>
+<main class="report">
+  <div class="grid">
+    <section>
+      <h2>KEY FINDINGS</h2>
+      <ul>
+        <li><b>Most of the money is still visible.</b> About 82% of the stolen value sits in wallets the attacker controls, mostly ETH plus the 203.79 BTC that have never moved. Another 10% is frozen.</li>
         <li><b>TRON USDT left TRON within hours</b> via THORChain, the USDT0 bridge, Relay, Chainflip, Bitget, HiFiSwap and NEAR Intents, and became ETH. Before that, $23M was cycled through USDD, which Tether cannot freeze.</li>
-        <li><b>Tornado Cash → Zcash → USDC round trip.</b> About 95% of the 6,837 ETH deposited into Tornado was traced back out. Most of it was swapped into shielded Zcash, and about $11M then came back as USDC/ETH through NEAR Intents (timing and amount match).</li>
+        <li><b>Tornado Cash → Zcash → USDC round trip.</b> About 95% of the ETH deposited into Tornado was traced back out. Most was swapped into shielded Zcash, and about $11M then came back as USDC/ETH through NEAR Intents (timing and amount match).</li>
         <li><b>"Custodial" swap services are traceable.</b> Orders at HiFiSwap, Bitget, SWFT and Aeroswap match payouts 1:1 within seconds to minutes, at a constant exchange rate.</li>
         <li><b>Cash-out has begun.</b> Deposits went to HitBTC, ChangeHero and Binance, and about $2.6M went to OTC-broker-like wallets on TRON.</li>
         <li><b>The earliest attacker action was at 03:55 UTC</b>: a permission lock-out key on a TRON victim wallet, about an hour before the time previously reported.</li>
       </ul>
-    </div>
-    <div class="card">
-      <h2>Leads for freezing &amp; attribution</h2>
-      <ul class="tight">
-        <li><b>Circle</b>: 2.38M USDC in two attacker wallets that has not been frozen: <span class="mono"><a href="https://etherscan.io/address/0x4600741e502866cba6f46f1ea1b2996015ff2a6a">0x4600…2a6a</a></span> and <span class="mono"><a href="https://etherscan.io/address/0x3635c6bc4927a9ff6654cfa15621186a909cee17">0x3635…ee17</a></span>.</li>
-        <li><b>Tether</b>: 1.35M USDT that has not been frozen, at <span class="mono"><a href="https://tronscan.org/#/address/TMAXFFdZQrciR412fcTU8GbSgvCiBLicYy">TMAXFF…BLicYy</a></span>.</li>
+    </section>
+    <section>
+      <h2>LEADS FOR FREEZING &amp; ATTRIBUTION</h2>
+      <ul>
+        <li><b>Circle</b>: 2.38M USDC in two attacker wallets that has not been frozen: <a href="https://etherscan.io/address/0x4600741e502866cba6f46f1ea1b2996015ff2a6a">0x4600…2a6a</a> and <a href="https://etherscan.io/address/0x3635c6bc4927a9ff6654cfa15621186a909cee17">0x3635…ee17</a>.</li>
+        <li><b>Tether</b>: 1.35M USDT that has not been frozen, at <a href="https://tronscan.org/#/address/TMAXFFdZQrciR412fcTU8GbSgvCiBLicYy">TMAXFF…BLicYy</a>.</li>
         <li><b>NEAR Intents</b>: 800k USDT from two failed swaps was never refunded. Its refund address is the attacker's own wallet.</li>
-        <li><b>Binance</b>: an established deposit address, in use since March 2026, received 27 ETH: <span class="mono"><a href="https://etherscan.io/address/0x5D77E7B11aAbc3D9865855244738ea920EB6B211">0x5D77…B211</a></span>. This is the strongest identity lead.</li>
-        <li><b>Bybit</b>: a withdrawal on 24 Sep funded the attacker's TRON control wallet (tx <span class="mono"><a href="https://tronscan.org/#/transaction/b284a2542afed3f5e00a4f9370cae1a9675b94c29967d49d8c45819cb1d7686e">b284a254…</a></span>).</li>
+        <li><b>Binance</b>: an established deposit address, in use since March 2026, received 27 ETH: <a href="https://etherscan.io/address/0x5D77E7B11aAbc3D9865855244738ea920EB6B211">0x5D77…B211</a>. This is the strongest identity lead.</li>
+        <li><b>Bybit</b>: a withdrawal on 24 Sep funded the attacker's TRON control wallet (tx <a href="https://tronscan.org/#/transaction/b284a2542afed3f5e00a4f9370cae1a9675b94c29967d49d8c45819cb1d7686e">b284a254…</a>).</li>
         <li><b>HitBTC, ChangeHero, Bitget, SWFT, Aeroswap, HiFiSwap, Relay, Chainflip</b>: their account and order records cover the deposits shown in the map. All exchanges should flag the BTC wallets and the Ethereum holding wallets.</li>
       </ul>
-      <p class="note">If you are a victim: report to local police and to Ledger, and beware of "fund recovery" offers — they are a common follow-up scam.</p>
+      <p class="note">If you are a victim: report to local police and to Ledger, and beware of "fund recovery" offers. They are a common follow-up scam.</p>
+    </section>
+  </div>
+
+  <section>
+    <h2>EVERY TRACED TRANSFER</h2>
+    <div class="tbar">
+      <input type="search" id="q" placeholder="search address, tx hash or note">
+      <select id="fChain"><option value="">all chains</option></select>
+      <select id="fMin"><option value="0">any amount</option><option value="10000">≥ $10k</option><option value="100000" selected>≥ $100k</option><option value="1000000">≥ $1M</option></select>
+      <label class="note"><input type="checkbox" id="fInt" checked> hide hops between the attacker's own wallets</label>
+      <a href="data/transfers.csv" download>download CSV</a>
     </div>
+    <div class="tw"><table id="tbl"><thead><tr><th>time (UTC)</th><th>chain</th><th>from</th><th>to</th><th class="n">amount</th><th class="n">USD</th><th>note</th><th>tx</th></tr></thead><tbody></tbody></table></div>
+    <div class="pager"><button id="prev">‹ prev</button><span id="pinfo"></span><button id="next">next ›</button></div>
   </section>
 
-  <section class="card">
-    <h2>All traced transfers</h2>
-    <div class="toolbar">
-      <input type="search" id="q" placeholder="Search address, tx hash or note" style="min-width:260px; flex:1">
-      <select id="fChain"><option value="">All chains</option></select>
-      <select id="fGroup"><option value="">All groups</option></select>
-      <select id="fMin">
-        <option value="0">Any amount</option>
-        <option value="10000">≥ $10k</option>
-        <option value="100000" selected>≥ $100k</option>
-        <option value="1000000">≥ $1M</option>
-      </select>
-      <label><input type="checkbox" id="fInternal" checked> hide hops between the attacker's own wallets</label>
-      <a href="data/transfers.csv" download>Download CSV</a>
-    </div>
-    <div class="tbl-wrap"><table id="tbl"><thead><tr>
-      <th>Time (UTC)</th><th>Chain</th><th>From</th><th>To</th><th class="num">Amount</th><th class="num">USD</th><th>Note</th><th>Tx</th>
-    </tr></thead><tbody></tbody></table></div>
-    <div class="pager"><button id="prev">‹ Prev</button><span id="pageInfo"></span><button id="next">Next ›</button></div>
-  </section>
-
-  <section class="card">
-    <h2>Method &amp; caveats</h2>
-    <ul class="tight">
-      <li><b>Data:</b> public block explorers and node APIs only (mempool.space, TronGrid, Blockscout, public RPCs for Ethereum, BNB Chain, Polygon and Solana) plus the public status APIs of Relay, NEAR Intents and LI.FI. THORChain swaps were resolved from the memos written on-chain.</li>
-      <li><b>Confidence:</b> transfers and balances are facts on-chain. Which wallets belong to the attacker is partly <span class="tag inf">inferred</span> from behaviour (fresh wallets that only relay attacker funds, matching timing/amounts) and marked as such in the address lists; addresses published by other researchers or linked by a service's own records are marked <span class="tag conf">confirmed</span>.</li>
-      <li><b>Mixers:</b> Tornado Cash deposits cannot be mathematically linked to their withdrawals. The links shown are either <span class="tag conf">confirmed</span>, meaning the withdrawals merged into known attacker wallets or a service's records tie them together, or <span class="tag inf">high-confidence</span> heuristics. Those heuristics combine the pool-flow excess over a baseline week, withdrawal bursts to fresh wallets, shared gas sources and identical onward swaps to Zcash.</li>
-      <li><b>Instant-swap services</b> without public order APIs (Bitget, SWFT, Aeroswap, HiFiSwap) were matched deposit-to-payout by timing and implied exchange rate. Every multi-order service matched 1:1.</li>
-      <li><b>Victims' privacy:</b> victim wallet addresses are deliberately not published here; victims appear only as per-chain totals.</li>
-      <li><b>Values:</b> USD amounts are estimates at the time of each transfer; balances "now" use current prices. Native BNB/POL movements are not covered (no keyless indexer), a gap of roughly $40k.</li>
-      <li>This is an independent analysis, not legal advice or an official statement by Ledger or any service mentioned. Corrections are welcome.</li>
+  <section>
+    <h2>METHOD &amp; CAVEATS</h2>
+    <ul>
+      <li><b>Data.</b> Public explorers and node APIs only: mempool.space, TronGrid, Blockscout, and public RPC nodes for Ethereum, BNB Chain, Polygon and Solana. Cross-chain swaps were resolved through the public status APIs of Relay, NEAR Intents and LI.FI. THORChain swaps were resolved from the memos written on-chain.</li>
+      <li><b>Line styles.</b> A solid line is either a transfer between wallets on the trail or a swap resolved from a service's own record (API or memo). A dashed line is a high-confidence match: a payout matched to its deposit by timing and a constant exchange rate (HiFiSwap, Bitget, SWFT, Aeroswap, Chainflip), a Tornado withdrawal attributed by the demixing heuristics, or a NEAR payout from the Zcash round trip. A dotted line is a medium match.</li>
+      <li><b>Mixers.</b> Tornado deposits cannot be mathematically linked to their withdrawals. A withdrawal counts as confirmed only when it later merged into known attacker wallets. The high-confidence ones combine the excess pool flow over a baseline week, withdrawal bursts to fresh wallets, shared gas sources, and identical onward swaps to Zcash.</li>
+      <li><b>Victims' privacy.</b> Victim wallet addresses and their transaction hashes are deliberately not published. Victims appear only as totals per chain, and so do unidentified senders, who may also be victims.</li>
+      <li><b>Values.</b> USD figures are estimates at the time of each transfer, and balances "now" come from an automated wallet watch. Native BNB/POL movements are not covered by the keyless sources, a gap of about 59 BNB.</li>
+      <li>This is independent research. It is not legal advice and not an official statement by Ledger or any service mentioned. Corrections are welcome as GitHub issues.</li>
     </ul>
   </section>
+</main>
 
-  <footer id="foot"></footer>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
-<script src="data/graph.js"></script>
+<script src="data/trace.js"></script>
 <script src="data/edges.js"></script>
 <script>
 (function () {
-  const D = window.TRACE, E = window.TRACE_EDGES || [];
-  const G = D.groups;
-  const KINDS = { victim: "Victims", attacker: "Attacker wallets", bridge: "Cross-chain bridge", swap: "Instant swap service",
-    convert: "Conversion / DEX", mixer: "Mixer / privacy", exchange: "Exchange", frozen: "Frozen", unknown: "Unidentified" };
-  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-  const money = (x) => x >= 1e6 ? "$" + (x / 1e6).toFixed(x >= 1e8 ? 0 : 2) + "M" : x >= 1e3 ? "$" + Math.round(x / 1e3) + "k" : "$" + Math.round(x);
-  const num = (x, d) => Number(x).toLocaleString("en-US", { maximumFractionDigits: d == null ? 2 : d });
-  const short = (a) => a && a.length > 16 ? a.slice(0, 8) + "…" + a.slice(-6) : (a || "");
-  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const addrUrl = (chain, a) => (D.explorer[chain] || ["{}"])[0].replace("{}", a);
-  const txUrl = (chain, h) => (D.explorer[chain] || ["", "{}"])[1].replace("{}", h);
+"use strict";
+const D = window.TRACE_MAP;
+const NODES = D.nodes, ROWS = D.rows, DECKS = D.decks, GROUPS = D.groups, EXPL = D.explorer;
+const LANES = D.lanes;
+NODES.forEach((n, i) => { n.i = i; });
+const deckOf = new Map();
+DECKS.forEach(d => { d.open = false; d.m.forEach(m => deckOf.set(m, d)); });
 
-  // theme toggle (per-viewer convenience)
-  const root = document.documentElement;
-  try { const t = localStorage.getItem("theme"); if (t) root.dataset.theme = t; } catch (e) {}
-  document.getElementById("themeBtn").onclick = () => {
-    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
-    root.dataset.theme = dark ? "light" : "dark";
-    try { localStorage.setItem("theme", root.dataset.theme); } catch (e) {}
-    restyle();
-  };
+/* ---------- formatting ---------- */
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const short = a => a && a.length > 16 ? a.slice(0, 7) + "…" + a.slice(-5) : (a || "");
+function amt(v) {
+  if (v >= 1e6) return (v / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M";
+  if (v >= 1e4) return Math.round(v / 1e3) + "k";
+  if (v >= 1) return v.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  return v.toLocaleString("en-US", { maximumFractionDigits: 6 });
+}
+const full = v => Number(v).toLocaleString("en-US", { maximumFractionDigits: 8 });
+const usd = v => v >= 1e6 ? "$" + (v / 1e6).toFixed(v >= 1e8 ? 0 : 2) + "M" : v >= 1e3 ? "$" + Math.round(v / 1e3) + "k" : "$" + Math.round(v);
+const md = t => t ? t.slice(5, 7) + "/" + t.slice(8, 10) + " " + t.slice(11, 16) : "";
+const addrUrl = (ch, a) => (EXPL[ch] || ["{}"])[0].replace("{}", a);
+const txUrl = (ch, h) => (EXPL[ch] || ["", "{}"])[1].replace("{}", h);
+const CONF = { C: "confirmed", H: "high-confidence match", M: "medium" };
+const LANE_LABEL = Object.fromEntries(LANES.map(l => [l.id, l.label]));
+const ORDER_C = { C: 0, H: 1, M: 2 };
+const heldLabel = h => (h.st === "frozen" ? "FROZEN " : h.st === "freezable" ? "FREEZABLE " : "HELD ") + amt(h.amt) + " " + h.asset;
+const PRICE = { ETH: 2500, WETH: 2500, BTC: 83500, SOL: 108, TRX: 0.33, BNB: 745, POL: 0.105 };
+const valueOf = (asset, a) => /USD|DAI/.test(asset) ? a : a * (PRICE[asset] || 0.0001);
+const clip = (s, n) => s.length > n ? s.slice(0, n - 1) + "…" : s;
 
-  // header + KPIs
-  const K = D.kpi;
-  document.getElementById("asof").textContent = "Data as of " + K.built + " · balances refreshed by an automated wallet watch · prices: BTC $" + num(K.prices.bitcoin, 0) + ", ETH $" + num(K.prices.ethereum, 0);
-  const kp = [
-    [money(K.stolen_usd), "stolen", num(K.n_victims, 0) + " victim addresses on 6 chains (value at theft time)"],
-    [money(K.frozen_usd), "frozen by Tether", "USDT in 20 attacker wallets on TRON"],
-    [money(K.held_usd), "still in attacker wallets", num(K.held_btc, 2) + " BTC · " + num(K.held_eth, 0) + " ETH · " + num(K.held_usdc / 1e6, 2) + "M USDC" + (K.held_usdt_unfrozen ? " · " + num(K.held_usdt_unfrozen / 1e6, 2) + "M USDT" : "")],
-    [num(K.tornado_eth_in, 0) + " ETH", "sent into Tornado Cash", Math.round(100 * K.tornado_eth_back / K.tornado_eth_in) + "% traced back out (confirmed + high confidence), mostly into Zcash"],
-  ];
-  document.getElementById("kpis").innerHTML = kp.map(([v, l, d]) => `<div class="kpi"><div class="v">${esc(v)}</div><div class="l">${esc(l)}</div><div class="d">${esc(d)}</div></div>`).join("");
-  document.getElementById("foot").innerHTML = `Built ${esc(K.built)} from ${num(E.length, 0)} traced transfers. Overview flows aggregate transfers between groups; internal hops inside one group are not drawn. <a href="data/transfers.csv">transfers.csv</a>`;
-
-  // legend
-  document.getElementById("legend").innerHTML = Object.entries(KINDS).map(([k, l]) => `<span style="--c:var(--k-${k})">${l}</span>`).join("");
-
-  // graph
-  const maxUsd = Math.max(...D.edges.map((e) => e.usd));
-  const maxThr = Math.max(...D.nodes.map((n) => Math.max(n.usd_in, n.usd_out)));
-  const elements = [];
-  D.nodes.forEach((n) => {
-    const thr = Math.max(n.usd_in, n.usd_out);
-    let sub = n.status || "";
-    if (n.kind === "victim") sub = n.n_victims + " wallets · " + money(n.stolen_usd);
-    else if (!sub) sub = money(thr);
-    elements.push({ data: { id: n.id, label: n.label + "\n" + sub, kind: n.kind, size: 26 + 46 * Math.sqrt(thr / maxThr) }, position: { x: n.stage * 270, y: n.y * 108 } });
-  });
-  D.edges.forEach((e, i) => elements.push({ data: { id: "e" + i, source: e.source, target: e.target, usd: e.usd, w: 1.2 + 11 * Math.sqrt(e.usd / maxUsd), label: money(e.usd) } }));
-
-  const cy = cytoscape({
-    container: document.getElementById("cy"), elements, layout: { name: "preset", padding: 30 },
-    wheelSensitivity: 0.25, minZoom: 0.2, maxZoom: 3,
-  });
-  function restyle() {
-    const kc = (k) => css("--k-" + k);
-    cy.style([
-      { selector: "node", style: { "background-color": (n) => kc(n.data("kind")), width: "data(size)", height: "data(size)", label: "data(label)",
-        "font-size": 15, color: css("--ink"), "text-wrap": "wrap", "text-max-width": 190, "min-zoomed-font-size": 6, "text-valign": "bottom", "text-margin-y": 5,
-        "border-width": 2, "border-color": css("--panel"), "text-background-color": css("--soft"), "text-background-opacity": 0.85, "text-background-padding": 2 } },
-      { selector: "edge", style: { width: "data(w)", "line-color": css("--edge"), "target-arrow-color": css("--edge"), "target-arrow-shape": "triangle",
-        "curve-style": "bezier", opacity: 0.75, label: document.getElementById("showLabels").checked ? "data(label)" : "", "font-size": 12, color: css("--muted"),
-        "text-background-color": css("--soft"), "text-background-opacity": 0.9, "text-background-padding": 1, "text-rotation": "autorotate" } },
-      { selector: ".faded", style: { opacity: 0.12 } },
-      { selector: "edge.hl", style: { "line-color": css("--accent"), "target-arrow-color": css("--accent"), opacity: 1 } },
-      { selector: "node:selected", style: { "border-color": css("--accent"), "border-width": 4 } },
-      { selector: "edge:selected", style: { "line-color": css("--accent"), "target-arrow-color": css("--accent"), opacity: 1 } },
-    ]);
-  }
-  restyle();
-  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", restyle);
-  const applyMin = () => {
-    const m = +document.getElementById("minUsd").value;
-    cy.edges().forEach((e) => e.style("display", e.data("usd") >= m ? "element" : "none"));
-  };
-  document.getElementById("minUsd").onchange = applyMin;
-  document.getElementById("showLabels").onchange = restyle;
-  document.getElementById("fitBtn").onclick = () => cy.fit(undefined, 30);
-  applyMin();
-  cy.fit(undefined, 30);
-
-  cy.on("mouseover", "node", (ev) => {
-    const nb = ev.target.closedNeighborhood();
-    cy.elements().not(nb).addClass("faded");
-    nb.edges().addClass("hl");
-  });
-  cy.on("mouseout", "node", () => cy.elements().removeClass("faded hl"));
-
-  const panel = document.getElementById("panel");
-  const nodeById = Object.fromEntries(D.nodes.map((n) => [n.id, n]));
-  function flowList(list, dirKey) {
-    if (!list.length) return "<p class='note'>none</p>";
-    return "<ul class='flows'>" + list.sort((a, b) => b.usd - a.usd).map((e) =>
-      `<li>${dirKey === "in" ? "from" : "to"} <b>${esc(G[e[dirKey === "in" ? "source" : "target"]].label)}</b>: ${money(e.usd)} <span class="note">(${e.n} transfers, ${esc(e.assets.join(", "))})</span></li>`).join("") + "</ul>";
-  }
-  function membersTable(id) {
-    const m = D.members[id] || [];
-    if (!m.length) return "";
-    const rows = m.slice(0, 60).map((x) => {
-      const inferred = /inferred/i.test(x.role + " " + x.basis + " " + x.label);
-      const tag = x.role === "service" || /terminal|source|service|exchange_deposit|near_1click/.test(x.role) ? "" :
-        `<span class="tag ${inferred ? "inf" : "conf"}">${inferred ? "inferred" : "confirmed"}</span>`;
-      return `<tr><td class="mono"><a href="${esc(x.url || addrUrl(x.chain, x.address))}" target="_blank" rel="noopener">${esc(short(x.address))}</a><br><span class="note">${esc(x.chain)}</span></td>
-        <td>${esc(x.label || x.role)} ${tag}${x.basis ? `<br><span class="note">${esc(x.basis)}</span>` : ""}</td><td>${esc(x.balance || "")}</td></tr>`;
-    }).join("");
-    return `<h3>Addresses (${m.length}${m.length > 60 ? ", first 60 shown" : ""})</h3><div class="tbl-wrap"><table><thead><tr><th>Address</th><th>Role / basis</th><th>Balance</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-  }
-  function showNode(id) {
-    const n = nodeById[id];
-    const ins = D.edges.filter((e) => e.target === id), outs = D.edges.filter((e) => e.source === id);
-    let h = `<h2>${esc(n.label)}</h2><span class="chip">${esc(KINDS[n.kind] || n.kind)}</span>`;
-    h += `<dl class="kv"><dt>Flow in</dt><dd>${money(n.usd_in)}</dd><dt>Flow out</dt><dd>${money(n.usd_out)}</dd>${n.status ? `<dt>Now</dt><dd><b>${esc(n.status)}</b></dd>` : ""}</dl>`;
-    if (n.kind === "victim") {
-      h += `<p>${n.n_victims} victim wallets drained, about ${money(n.stolen_usd)} at the time.</p><p class="note">Stolen assets: ${Object.entries(n.assets).map(([a, v]) => num(v) + " " + esc(a)).join(", ")}. Individual victim addresses are not published.</p>`;
+/* ---------- visible model ---------- */
+let mode = "groups", V = null, L = null, sel = null;
+function visKey(i) {
+  const n = NODES[i];
+  if (mode === "groups") return "G:" + n.g;
+  const d = deckOf.get(i);
+  return d && !d.open ? "D:" + d.id : "N:" + i;
+}
+function build() {
+  const vn = new Map();
+  NODES.forEach((n, i) => {
+    const key = visKey(i);
+    let v = vn.get(key);
+    if (!v) {
+      if (key[0] === "G") {
+        const g = GROUPS[n.g];
+        v = { key, type: "group", g: n.g, lane: g.l, col: g.c, title: g.title, kind: g.kind };
+      } else if (key[0] === "D") {
+        v = { key, type: "deck", deck: deckOf.get(i), lane: n.l, col: n.c };
+      } else {
+        v = { key, type: n.k === "s" ? "service" : n.k === "v" ? "victims" : n.k === "otc" ? "otc" : "wallet", node: n, lane: n.l, col: n.c };
+      }
+      v.members = [];
+      vn.set(key, v);
     }
-    h += `<h3>Incoming</h3>${flowList(ins, "in")}<h3>Outgoing</h3>${flowList(outs, "out")}`;
-    h += `<p><button data-group="${esc(id)}" id="showTx">Show these transfers in the table ↓</button></p>`;
-    h += membersTable(id);
-    panel.innerHTML = h;
-    const b = document.getElementById("showTx");
-    if (b) b.onclick = () => { document.getElementById("fGroup").value = id; document.getElementById("fMin").value = "0"; page = 0; renderTable(); document.getElementById("tbl").scrollIntoView({ behavior: "smooth" }); };
-  }
-  function showEdge(ed) {
-    const e = D.edges[+ed.id().slice(1)];
-    panel.innerHTML = `<h2>${esc(G[e.source].label)} → ${esc(G[e.target].label)}</h2>
-      <dl class="kv"><dt>Value</dt><dd><b>${money(e.usd)}</b></dd><dt>Transfers</dt><dd>${e.n}</dd><dt>Assets</dt><dd>${esc(e.assets.join(", "))}</dd>
-      <dt>First</dt><dd>${esc(e.first || "")}</dd><dt>Last</dt><dd>${esc(e.last || "")}</dd></dl>
-      <p><button id="showTx2">Show these transfers in the table ↓</button></p>`;
-    document.getElementById("showTx2").onclick = () => { pairFilter = [e.source, e.target]; document.getElementById("fMin").value = "0"; page = 0; renderTable(); document.getElementById("tbl").scrollIntoView({ behavior: "smooth" }); };
-  }
-  cy.on("tap", "node", (ev) => showNode(ev.target.id()));
-  if (nodeById.eth_cluster) { cy.$id("eth_cluster").select(); showNode("eth_cluster"); }
-  cy.on("tap", "edge", (ev) => showEdge(ev.target));
+    v.members.push(i);
+  });
+  vn.forEach(v => {
+    const hs = v.members.map(i => NODES[i].h).filter(Boolean);
+    if (!hs.length) return;
+    const by = {};
+    hs.forEach(h => { (by[h.asset] = by[h.asset] || { amt: 0, sts: new Set() }); by[h.asset].amt += h.amt; by[h.asset].sts.add(h.st); });
+    const top = Object.keys(by).sort((a, b) => valueOf(b, by[b].amt) - valueOf(a, by[a].amt))[0];
+    const sts = new Set(hs.map(h => h.st));
+    v.held = { amt: by[top].amt, asset: top, more: Object.keys(by).length - 1, by,
+      st: sts.has("held") ? "held" : sts.has("freezable") ? "freezable" : "frozen" };
+  });
+  const em = new Map();
+  ROWS.forEach((r, ri) => {
+    const f = visKey(r[0]), t = visKey(r[1]);
+    if (f === t) return;
+    const k = f + ">" + t;
+    let e = em.get(k);
+    if (!e) { e = { f, t, rows: [], sums: {}, usd: 0, conf: "C", t0: r[2], t1: r[2] }; em.set(k, e); }
+    e.rows.push(ri);
+    e.sums[r[4]] = (e.sums[r[4]] || 0) + r[3];
+    e.usd += r[8] || 0;
+    if (ORDER_C[r[6]] > ORDER_C[e.conf]) e.conf = r[6];
+    if (r[2] && (!e.t0 || r[2] < e.t0)) e.t0 = r[2];
+    if (r[2] && (!e.t1 || r[2] > e.t1)) e.t1 = r[2];
+  });
+  const edges = [...em.values()];
+  const maxU = Math.max(1001, ...edges.map(e => e.usd));
+  edges.forEach(e => {
+    const as = Object.keys(e.sums).sort((a, b) => valueOf(b, e.sums[b]) - valueOf(a, e.sums[a]));
+    e.asset = as[0]; e.amt = e.sums[as[0]]; e.more = as.length - 1;
+    e.w = 0.9 + 4.2 * Math.max(0, Math.log10(Math.max(e.usd, 1000)) - 3) / Math.max(0.5, Math.log10(maxU) - 3);
+  });
+  V = { nodes: [...vn.values()], edges, byKey: vn };
+}
 
-  // transfers table
-  const chains = [...new Set(E.map((e) => e[0]))].sort();
-  document.getElementById("fChain").innerHTML += chains.map((c) => `<option>${esc(c)}</option>`).join("");
-  const groupsUsed = [...new Set(E.flatMap((e) => [e[4], e[6]]))].filter((g) => G[g]).sort((a, b) => G[a].label.localeCompare(G[b].label));
-  document.getElementById("fGroup").innerHTML += groupsUsed.map((g) => `<option value="${esc(g)}">${esc(G[g].label)}</option>`).join("");
-  let page = 0, pairFilter = null;
-  const PER = 100;
-  function filtered() {
-    const q = document.getElementById("q").value.trim().toLowerCase();
-    const ch = document.getElementById("fChain").value, gr = document.getElementById("fGroup").value, mn = +document.getElementById("fMin").value;
-    const hideInt = document.getElementById("fInternal").checked;
-    return E.filter((e) => (!hideInt || e[4] !== e[6]) && (!ch || e[0] === ch) && (!gr || e[4] === gr || e[6] === gr) && e[9] >= mn &&
-      (!pairFilter || (e[4] === pairFilter[0] && e[6] === pairFilter[1])) &&
-      (!q || (e[2] + " " + e[3] + " " + e[5] + " " + e[10]).toLowerCase().includes(q)));
+/* ---------- layout: lanes x hop columns, barycentric ordering ---------- */
+const W = 236, H = 48, RH = 62, LH = 44, SUBG = 34, X0 = 40;
+let GAP = 170, ROWS_MAX = 22;
+function layout() {
+  GAP = mode === "groups" ? 120 : 160; ROWS_MAX = mode === "groups" ? 7 : 22;
+  const lanes = LANES.filter(l => V.nodes.some(n => n.lane === l.id));
+  const cells = new Map();
+  V.nodes.forEach(n => { const k = n.lane + "|" + n.col; (cells.get(k) || cells.set(k, []).get(k)).push(n); });
+  const maxc = Math.max(...V.nodes.map(n => n.col));
+  let y = 26; const laneTop = {}, laneOut = [];
+  lanes.forEach(l => {
+    let rows = 1;
+    cells.forEach((v, k) => { if (k.startsWith(l.id + "|")) rows = Math.max(rows, Math.min(ROWS_MAX, v.length)); });
+    laneTop[l.id] = y + LH;
+    const h = LH + rows * RH + 14;
+    laneOut.push({ id: l.id, label: l.label, y, h });
+    y += h;
+  });
+  const ins = new Map(), outs = new Map();
+  V.nodes.forEach(n => { ins.set(n.key, []); outs.set(n.key, []); });
+  V.edges.forEach(e => { outs.get(e.f).push(e.t); ins.get(e.t).push(e.f); });
+  const firstT = new Map();
+  V.edges.forEach(e => [e.f, e.t].forEach(k => { if (e.t0 && (!firstT.has(k) || e.t0 < firstT.get(k))) firstT.set(k, e.t0); }));
+  const pos = new Map();
+  function place(list, lane) {
+    list.forEach((n, i) => { n.row = i % ROWS_MAX; n.sub = Math.floor(i / ROWS_MAX); n.y = laneTop[lane] + n.row * RH; pos.set(n.key, n.y + n.sub * 0.001); });
   }
-  function cell(chain, a, g) {
-    return `<span class="mono"><a href="${esc(addrUrl(chain, a))}" target="_blank" rel="noopener">${esc(short(a))}</a></span><br><span class="note">${esc(G[g] ? G[g].label : g)}</span>`;
+  cells.forEach((list, k) => {
+    list.sort((a, b) => (firstT.get(a.key) || "~").localeCompare(firstT.get(b.key) || "~") || a.key.localeCompare(b.key));
+    place(list, k.split("|")[0]);
+  });
+  // alternating sweeps: order each cell by the mean position of its neighbours (fewer crossings)
+  for (let pass = 0; pass < 6; pass++) {
+    const fwd = pass % 2 === 0;
+    for (let ci = 0; ci <= maxc; ci++) {
+      const c = fwd ? ci : maxc - ci;
+      lanes.forEach(l => {
+        const list = cells.get(l.id + "|" + c);
+        if (!list || list.length < 2) return;
+        const key = new Map();
+        list.forEach(n => {
+          const nb = (fwd ? ins : outs).get(n.key).map(k => pos.get(k)).filter(v => v !== undefined);
+          key.set(n.key, nb.length ? nb.reduce((a, b) => a + b, 0) / nb.length : pos.get(n.key));
+        });
+        list.sort((a, b) => key.get(a.key) - key.get(b.key) || a.key.localeCompare(b.key));
+        place(list, l.id);
+      });
+    }
   }
-  function renderTable() {
-    const rows = filtered();
-    const pages = Math.max(1, Math.ceil(rows.length / PER));
-    page = Math.min(page, pages - 1);
-    const slice = rows.slice(page * PER, page * PER + PER);
-    document.querySelector("#tbl tbody").innerHTML = slice.map((e) => `<tr><td class="mono">${esc(e[1])}</td><td>${esc(e[0])}</td>
-      <td>${cell(e[0], e[3], e[4])}</td><td>${cell(e[0], e[5], e[6])}</td><td class="num">${num(e[8], 4)} ${esc(e[7])}</td><td class="num">${money(e[9])}</td>
-      <td>${esc(e[10])}</td><td class="mono">${e[2] ? `<a href="${esc(txUrl(e[0], e[2]))}" target="_blank" rel="noopener">${esc(short(e[2]))}</a>` : ""}</td></tr>`).join("");
-    document.getElementById("pageInfo").textContent = `${num(rows.length, 0)} transfers${pairFilter ? " (filtered by arrow — change any filter to reset)" : ""} · page ${page + 1} / ${pages}`;
+  const nsub = Array(maxc + 1).fill(1);
+  cells.forEach((v, k) => { const c = +k.split("|")[1]; nsub[c] = Math.max(nsub[c], Math.ceil(v.length / ROWS_MAX)); });
+  const colX = []; let cx = X0;
+  for (let c = 0; c <= maxc; c++) { colX.push(cx); cx += nsub[c] * (W + SUBG) - SUBG + GAP; }
+  V.nodes.forEach(n => { n.x = colX[n.col] + n.sub * (W + SUBG); });
+  L = { lanes: laneOut, W: cx - GAP + 40, H: y + 10, maxc, colX };
+}
+
+/* ---------- drawing (SVG) ---------- */
+const NS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById("svg"), vp = document.getElementById("vp"), map = document.getElementById("map");
+function el(tag, attrs, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); (parent || vp).appendChild(e); return e; }
+function boxTitle(v) {
+  if (v.type === "group") return v.title;
+  if (v.type === "deck") return v.deck.m.length + " wallets";
+  if (v.type === "service" || v.type === "victims") return v.node.title;
+  return short(v.node.a);
+}
+function boxSub(v) {
+  if (v.held) return heldLabel(v.held) + (v.held.more ? " +" + v.held.more : "");
+  if (v.type === "victims") return v.node.nv + " wallets · " + usd(v.node.stolen);
+  if (v.type === "group" && v.kind === "victim") { const n = NODES[v.members[0]]; return n.nv + " wallets · " + usd(n.stolen); }
+  const inn = V.edges.filter(e => e.t === v.key), out = V.edges.filter(e => e.f === v.key);
+  const u = inn.reduce((s, e) => s + e.usd, 0) || out.reduce((s, e) => s + e.usd, 0);
+  const tag = v.type === "deck" ? "stack · " : v.type === "service" || (v.type === "group" && v.lane === "services") ? "service · " : v.type === "otc" ? "OTC broker · " : "";
+  return tag + (u ? "moved " + usd(u) : "");
+}
+function bez(p0, p1, p2, p3, t) { const u = 1 - t; return u * u * u * p0 + 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t * p3; }
+function draw() {
+  while (vp.firstChild) vp.removeChild(vp.firstChild);
+  L.lanes.forEach((l, i) => {
+    if (i % 2) el("rect", { x: 0, y: l.y, width: L.W, height: l.h, fill: "var(--grid)" });
+    el("line", { x1: 0, y1: l.y, x2: L.W, y2: l.y, stroke: "var(--line2)", "stroke-width": 1 });
+    el("text", { x: 14, y: l.y + 26, fill: "var(--hi)", "font-family": "var(--mono)", "font-size": 13, "font-weight": 600, "letter-spacing": ".1em" }).textContent = l.label;
+  });
+  for (let c = 0; c <= L.maxc; c++) {
+    el("text", { x: L.colX[c], y: 16, fill: "var(--dim)", "font-family": "var(--mono)", "font-size": 11, "letter-spacing": ".12em" }).textContent = c === 0 ? "SOURCE" : "HOP " + c;
   }
-  ["q", "fChain", "fGroup", "fMin", "fInternal"].forEach((id) => document.getElementById(id).addEventListener("input", () => { page = 0; pairFilter = null; renderTable(); }));
-  document.getElementById("prev").onclick = () => { page = Math.max(0, page - 1); renderTable(); };
-  document.getElementById("next").onclick = () => { page += 1; renderTable(); };
-  renderTable();
+  const gE = el("g", {}), gN = el("g", {}), gL = el("g", {});
+  const inCount = new Map(), inRank = new Map();
+  V.edges.forEach(e => inCount.set(e.t, (inCount.get(e.t) || 0) + 1));
+  V.edges.slice().sort((a, b) => V.byKey.get(a.f).y - V.byKey.get(b.f).y).forEach(e => { const r = inRank.get(e.t) || 0; e.rank = r; inRank.set(e.t, r + 1); });
+  V.edges.forEach(e => {
+    const a = V.byKey.get(e.f), b = V.byKey.get(e.t);
+    const y1 = a.y + H / 2, y2 = b.y + H / 2;
+    let d, lx, ly, ax, dir;
+    if (b.x > a.x + W / 2) {
+      const x1 = a.x + W, x2 = b.x - 5, m = (x1 + x2) / 2;
+      d = `M${x1},${y1} C${m},${y1} ${m},${y2} ${x2},${y2}`;
+      const n = inCount.get(e.t), t = n > 1 ? 0.5 + 0.3 * (e.rank / (n - 1)) : 0.62;
+      lx = bez(x1, m, m, x2, t); ly = bez(y1, y1, y2, y2, t); ax = x2; dir = 1;
+    } else { // backward step (round trip): loop out to the right of both boxes
+      const x1 = a.x + W, x2 = b.x + W + 5, bulge = Math.max(x1, x2) + 70 + 6 * Math.min(10, e.rank || 0);
+      d = `M${x1},${y1} C${bulge},${y1} ${bulge},${y2} ${x2},${y2}`;
+      lx = bez(x1, bulge, bulge, x2, 0.5); ly = bez(y1, y1, y2, y2, 0.5); ax = x2; dir = -1;
+    }
+    e.el = el("path", { d, fill: "none", stroke: "var(--ink)", "stroke-opacity": 0.62, "stroke-width": e.conf === "M" ? Math.max(e.w, 1.8) : e.w,
+      "stroke-dasharray": e.conf === "H" ? "7 4" : e.conf === "M" ? "1.5 4" : "none", "stroke-linecap": e.conf === "M" ? "round" : "butt" }, gE);
+    e.hit = el("path", { d, fill: "none", stroke: "transparent", "stroke-width": 10, "data-hit": "1", style: "cursor:pointer" }, gE);
+    e.hit.addEventListener("click", ev => { ev.stopPropagation(); selectEdge(e); });
+    e.arrow = el("path", { d: dir > 0 ? `M${ax - 1},${y2 - 4} L${ax + 5},${y2} L${ax - 1},${y2 + 4}Z` : `M${ax + 1},${y2 - 4} L${ax - 5},${y2} L${ax + 1},${y2 + 4}Z`, fill: "var(--ink)", "fill-opacity": 0.8 }, gE);
+    const l1 = usd(e.usd) + " · " + amt(e.amt) + " " + e.asset + (e.more ? " +" + e.more : "") + (e.rows.length > 1 ? " ×" + e.rows.length : "");
+    const l2 = md(e.t0) + (e.t1 && e.t1 !== e.t0 ? " – " + md(e.t1) : "") + " · " + (e.conf === "C" ? "confirmed" : e.conf === "H" ? "match" : "medium");
+    const wd = Math.max(l1.length, l2.length) * 6.4 + 12;
+    const g = el("g", { class: "elab" }, gL);
+    el("rect", { x: lx - wd / 2, y: ly - 14, width: wd, height: 28, fill: "var(--bg)", "fill-opacity": 0.9 }, g);
+    el("text", { x: lx - wd / 2 + 6, y: ly - 2, fill: "var(--hi)", "font-family": "var(--mono)", "font-size": 10.5 }, g).textContent = l1;
+    el("text", { x: lx - wd / 2 + 6, y: ly + 10, fill: "var(--dim)", "font-family": "var(--mono)", "font-size": 10 }, g).textContent = l2;
+    e.lab = g;
+  });
+  V.nodes.forEach(v => {
+    const st = v.held ? v.held.st : "";
+    const fill = st === "freezable" ? "var(--acc)" : st === "held" ? "var(--hi)" : st === "frozen" ? "url(#hatch)" : "var(--bg)";
+    const ink = st === "freezable" ? "var(--acc-ink)" : st ? "var(--inv)" : "var(--hi)";
+    const sub = st === "freezable" ? "var(--acc-ink)" : st ? "var(--inv)" : "var(--dim)";
+    const g = el("g", { tabindex: 0, role: "button", "aria-label": boxTitle(v) + ", " + boxSub(v), style: "cursor:pointer" }, gN);
+    if (v.type === "deck") {
+      el("rect", { x: v.x + 7, y: v.y - 6, width: W, height: H, fill: "var(--bg)", stroke: "var(--line2)" }, g);
+      el("rect", { x: v.x + 3.5, y: v.y - 3, width: W, height: H, fill: "var(--bg)", stroke: "var(--line2)" }, g);
+    }
+    const isSvc = v.type === "service" || (v.type === "group" && v.lane === "services");
+    if (isSvc) el("rect", { x: v.x - 3, y: v.y - 3, width: W + 6, height: H + 6, fill: "none", stroke: "var(--line2)" }, g);
+    v.box = el("rect", { x: v.x, y: v.y, width: W, height: H, fill, stroke: st ? (st === "freezable" ? "var(--acc)" : "var(--hi)") : "var(--line2)", "stroke-width": 1,
+      "stroke-dasharray": v.type === "victims" || v.kind === "victim" ? "5 3" : v.type === "otc" || v.g === "otc" ? "1.5 3" : "none" }, g);
+    if (st === "frozen") el("rect", { x: v.x + 5, y: v.y + 5, width: W - 10, height: H - 10, fill: "var(--hi)" }, g);
+    el("text", { x: v.x + 12, y: v.y + 20, fill: ink, "font-family": "var(--mono)", "font-size": 13, "font-weight": 700 }, g).textContent = clip(boxTitle(v), 27);
+    el("text", { x: v.x + 12, y: v.y + 37, fill: sub, "font-family": "var(--mono)", "font-size": 11 }, g).textContent = clip(boxSub(v), 31);
+    g.addEventListener("click", ev => { ev.stopPropagation(); pick(v); });
+    g.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); pick(v); } });
+  });
+  applySel();
+}
+svg.querySelector("defs").innerHTML = '<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="var(--bg)"/><rect width="2.4" height="6" fill="var(--hi)"/></pattern>';
+
+/* ---------- selection ---------- */
+function applySel() {
+  const s = sel && sel.type === "node" ? sel.v.key : null;
+  const se = sel && sel.type === "edge" ? sel.e : null;
+  V.nodes.forEach(v => v.box.setAttribute("stroke-width", v.key === s ? 3 : 1));
+  V.edges.forEach(e => {
+    const on = se ? e === se : !s || e.f === s || e.t === s;
+    e.el.setAttribute("stroke-opacity", sel ? (on ? 0.95 : 0.1) : 0.62);
+    e.arrow.setAttribute("fill-opacity", sel ? (on ? 1 : 0.1) : 0.8);
+    e.lab.style.display = sel && !on ? "none" : "";
+    e.lab.classList.toggle("on", !!sel && on);
+  });
+}
+function pick(v) {
+  if (v.type === "deck") { v.deck.open = true; rebuild(); selectNode(V.byKey.get("N:" + v.deck.m[0]), true); return; }
+  selectNode(v);
+}
+function selectNode(v, center) {
+  sel = v ? { type: "node", v } : null;
+  applySel();
+  if (center && v) centerOn(v);
+  v ? nodeDrawer(v) : overview();
+}
+function selectEdge(e) { sel = { type: "edge", e }; applySel(); edgeDrawer(e); }
+function rebuild() { build(); layout(); draw(); apply(); }
+
+/* ---------- pan / zoom ---------- */
+let k = 1, tx = 0, ty = 0;
+function apply() { vp.setAttribute("transform", `translate(${tx},${ty}) scale(${k})`); svg.classList.toggle("far", k < 0.6); }
+function fit() {
+  const r = map.getBoundingClientRect();
+  k = Math.min(r.width / L.W, r.height / L.H) * 0.97;
+  tx = (r.width - L.W * k) / 2; ty = Math.max(4, (r.height - L.H * k) / 2); apply();
+}
+function zoomAt(f, cx, cy) { const nk = Math.max(0.03, Math.min(4, k * f)); tx = cx - (cx - tx) * nk / k; ty = cy - (cy - ty) * nk / k; k = nk; apply(); }
+function centerOn(v) { const r = map.getBoundingClientRect(); k = Math.max(k, 0.85); tx = r.width / 2 - (v.x + W / 2) * k; ty = r.height / 2 - (v.y + H / 2) * k; apply(); }
+map.addEventListener("wheel", e => { e.preventDefault(); const r = map.getBoundingClientRect(); zoomAt(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+const ptr = new Map(); let drag = null, pinch = null;
+map.addEventListener("pointerdown", e => {
+  if (e.target.closest("g[role]") || (e.target.getAttribute && e.target.getAttribute("data-hit"))) return;
+  ptr.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (ptr.size === 1) { drag = { x: e.clientX, y: e.clientY, tx, ty, moved: false }; map.classList.add("drag"); }
+  else if (ptr.size === 2) { const p = [...ptr.values()]; pinch = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y); drag = null; }
+  try { map.setPointerCapture(e.pointerId); } catch (_) {}
+});
+map.addEventListener("pointermove", e => {
+  if (!ptr.has(e.pointerId)) return;
+  ptr.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pinch && ptr.size === 2) {
+    const p = [...ptr.values()], d = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y), r = map.getBoundingClientRect();
+    zoomAt(d / pinch, (p[0].x + p[1].x) / 2 - r.left, (p[0].y + p[1].y) / 2 - r.top); pinch = d; return;
+  }
+  if (!drag) return;
+  if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 4) drag.moved = true;
+  tx = drag.tx + e.clientX - drag.x; ty = drag.ty + e.clientY - drag.y; apply();
+});
+function endPtr(e) {
+  if (!ptr.has(e.pointerId)) return;
+  ptr.delete(e.pointerId);
+  if (ptr.size < 2) pinch = null;
+  if (ptr.size === 0) { map.classList.remove("drag"); const moved = drag && drag.moved; const had = !!drag; drag = null; if (had && !moved && e.type === "pointerup" && sel) selectNode(null); }
+}
+map.addEventListener("pointerup", endPtr); map.addEventListener("pointercancel", endPtr);
+const mid = () => { const r = map.getBoundingClientRect(); return [r.width / 2, r.height / 2]; };
+document.getElementById("zin").onclick = () => zoomAt(1.25, ...mid());
+document.getElementById("zout").onclick = () => zoomAt(1 / 1.25, ...mid());
+document.getElementById("fit").onclick = fit;
+map.addEventListener("keydown", e => {
+  if (e.target !== map) return;
+  const s = 60;
+  if (e.key === "ArrowLeft") tx += s; else if (e.key === "ArrowRight") tx -= s; else if (e.key === "ArrowUp") ty += s; else if (e.key === "ArrowDown") ty -= s;
+  else if (e.key === "+" || e.key === "=") zoomAt(1.25, ...mid()); else if (e.key === "-") zoomAt(1 / 1.25, ...mid()); else if (e.key === "0") fit();
+  else if (e.key === "Escape") selectNode(null); else return;
+  e.preventDefault(); apply();
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape" && sel && e.target.tagName !== "INPUT") selectNode(null); });
+window.addEventListener("resize", () => { if (!sel) fit(); });
+
+/* ---------- drawer ---------- */
+const dr = document.getElementById("dr");
+const K = D.kpi;
+function overview() {
+  const services = {};
+  ROWS.forEach(r => { [r[0], r[1]].forEach(i => { const n = NODES[i]; if (n.k === "s") services[n.title] = (services[n.title] || 0) + 1; }); });
+  const svcRows = Object.entries(services).sort((a, b) => b[1] - a[1]).slice(0, 12)
+    .map(([t, c]) => `<div class="kv"><span>${esc(t)}</span><span>${c} tx</span></div>`).join("");
+  const nW = NODES.filter(n => n.k === "w").length, nS = NODES.filter(n => n.k === "s").length;
+  dr.innerHTML = `<h2>SUMMARY</h2>
+    <div class="kv"><span>stolen</span><span><b>${usd(K.stolen)}</b> · ${K.victims} victim wallets</span></div>
+    <div class="kv"><span>frozen by Tether</span><span><span class="tag">FROZEN</span>${amt(K.frozen_usdt)} USDT</span></div>
+    <div class="kv"><span>held by attacker</span><span><span class="tag">HELD</span>${full(+K.held_btc.toFixed(4))} BTC<br>${full(+K.held_eth.toFixed(2))} ETH</span></div>
+    <div class="kv"><span>freezable now</span><span><span class="tag acc">FREEZABLE</span>${amt(K.held_usdc)} USDC<br>${amt(K.unfrozen_usdt)} USDT</span></div>
+    <div class="kv"><span>balances read</span><span>${esc(D.snap.balances || D.snap.built)}</span></div>
+    <div class="kv"><span>wallets · services</span><span>${nW} · ${nS}</span></div>
+    <div class="kv"><span>transfers drawn</span><span>${ROWS.length}</span></div>
+    <div class="sec">HOW TO READ</div>
+    <p>Each band is a blockchain, and each column is one more step away from the victims. Boxes are wallets; boxes with a frame are services or exchanges. Lines are transfers, thicker for more money. <b>groups</b> shows the overview, and <b>wallets</b> shows every wallet, where stacks of identical wallets open when you click them.</p>
+    <div class="sec">BUSIEST SERVICES</div>${svcRows}`;
+}
+function sumAssets(list) {
+  const o = {};
+  list.forEach(e => e.rows.forEach(ri => { const r = ROWS[ri]; o[r[4]] = (o[r[4]] || 0) + r[3]; }));
+  const ks = Object.keys(o).sort((a, b) => valueOf(b, o[b]) - valueOf(a, o[a]));
+  return ks.length ? ks.map(a => full(+o[a].toFixed(6)) + " " + esc(a)).join("<br>") : "none";
+}
+function vLabel(v) { return v.type === "wallet" || v.type === "otc" ? short(v.node.a) : boxTitle(v); }
+function edgeBlocks(list, dir, open) {
+  return list.slice().sort((a, b) => (a.t0 || "").localeCompare(b.t0 || "")).map(e => {
+    const o = V.byKey.get(dir === "from" ? e.f : e.t);
+    const sums = Object.keys(e.sums).map(a => full(+e.sums[a].toFixed(6)) + " " + a).join(" + ");
+    const rows = e.rows.map(ri => ROWS[ri]).slice(0, 200).map(r => {
+      const other = NODES[dir === "from" ? r[0] : r[1]];
+      const who = o.type !== "wallet" && other.a ? `<br>${dir} <a href="${esc(addrUrl(other.ch, other.a))}" target="_blank" rel="noopener">${esc(short(other.a))}</a>` : "";
+      return `<span class="tx">${esc(r[2])} · ${full(+r[3].toFixed(8))} ${esc(r[4])} · ${CONF[r[6]]}${who}${r[5] ? `<br>tx <a href="${esc(txUrl(r[7], r[5]))}" target="_blank" rel="noopener">${esc(short(r[5]))}</a>` : ""}${r[9] ? `<br>${esc(r[9])}` : ""}</span>`;
+    }).join("");
+    return `<details class="ed"${open || e.rows.length <= 2 ? " open" : ""}><summary>${dir} <button class="jump" data-k="${esc(o.key)}">${esc(vLabel(o))}</button><br><span class="t">${esc(sums)} · ${usd(e.usd)} · ${e.rows.length} tx · ${md(e.t0)}${e.t1 !== e.t0 ? " – " + md(e.t1) : ""} · ${CONF[e.conf]}</span></summary>${rows}${e.rows.length > 200 ? '<span class="tx">… first 200 shown; see the table below the map</span>' : ""}</details>`;
+  }).join("");
+}
+function bindJumps() {
+  dr.querySelectorAll("button.jump[data-k]").forEach(b => b.onclick = () => { const v = V.byKey.get(b.dataset.k); if (v) { if (v.type === "deck") pick(v); else selectNode(v, true); } });
+  dr.querySelectorAll("button[data-open]").forEach(b => b.onclick = () => openWallet(+b.dataset.open));
+  const ex = document.getElementById("expand"); if (ex) ex.onclick = () => { const v = sel && sel.v; if (v && v.type === "deck") pick(v); };
+  const gw = document.getElementById("toWallets");
+  if (gw) gw.onclick = () => { const v = sel && sel.v; const first = v ? v.members.find(i => NODES[i].k === "w" || NODES[i].k === "otc" || NODES[i].k === "s") : null; setMode("wallets"); if (first != null) openWallet(first); };
+}
+function heldTags(v) {
+  if (!v.held) return "";
+  return Object.entries(v.held.by).map(([a, o]) => {
+    const st = o.sts.has("held") ? "held" : o.sts.has("freezable") ? "freezable" : "frozen";
+    return `<span class="tag ${st === "freezable" ? "acc" : ""}">${st.toUpperCase()}</span>${full(+o.amt.toFixed(4))} ${esc(a)}`;
+  }).join("<br>");
+}
+function nodeDrawer(v) {
+  const ins = V.edges.filter(e => e.t === v.key), outs = V.edges.filter(e => e.f === v.key);
+  let h = `<h2>${esc(LANE_LABEL[v.lane] || v.lane)} · ${v.col === 0 ? "SOURCE" : "HOP " + v.col}</h2>`;
+  if (v.type === "wallet" || v.type === "otc") {
+    const n = v.node;
+    h += `<div class="big">${esc(n.a)}</div><div><a href="${esc(addrUrl(n.ch, n.a))}" target="_blank" rel="noopener">open on explorer ↗</a></div>`;
+    h += v.held ? `<div style="margin-top:8px">${heldTags(v)}</div>` : "";
+    h += `<div style="margin-top:10px"><div class="kv"><span>role</span><span>${esc(n.role || "wallet")}</span></div>
+      <div class="kv"><span>attribution</span><span>${esc(n.attr)}</span></div>${n.basis ? `<div class="kv"><span>basis</span><span>${esc(n.basis)}</span></div>` : ""}`;
+  } else if (v.type === "victims" || (v.type === "group" && v.kind === "victim")) {
+    const n = NODES[v.members[0]];
+    h += `<div class="big">${esc(n.title)}</div><p>${n.nv} victim wallets were drained into the attacker wallets to the right, about ${usd(n.stolen)} at the time. Individual victim addresses and transaction hashes are not published.</p>
+      <div class="kv"><span>stolen</span><span>${Object.entries(n.assets).map(([a, x]) => full(x) + " " + esc(a)).join("<br>")}</span></div><div>`;
+  } else if (v.type === "service") {
+    h += `<div class="big">${esc(v.node.title)}</div><p>Service or exchange. Every address of it that took part is listed below. Its records can link deposits to payouts.</p><div>`;
+  } else if (v.type === "deck") {
+    h += `<div class="big">${v.deck.m.length} similar wallets</div><p>These wallets share the same position, counterparties and state, so they are drawn as one stack.</p>
+      <p><button id="expand">open the stack</button></p>${v.held ? `<div>${heldTags(v)}</div>` : ""}<div>`;
+  } else {
+    h += `<div class="big">${esc(v.title)}</div>${v.held ? `<div style="margin-top:6px">${heldTags(v)}</div>` : ""}
+      <p>${v.members.length} ${v.lane === "services" ? "service entities" : "wallets"} in this group. <button class="jump" id="toWallets">show them in the wallet view</button></p><div>`;
+  }
+  h += `<div class="kv"><span>received</span><span>${sumAssets(ins)}</span></div><div class="kv"><span>sent</span><span>${sumAssets(outs)}</span></div>
+    <div class="kv"><span>lines in / out</span><span>${ins.length} / ${outs.length}</span></div></div>`;
+  if (ins.length) h += `<div class="sec">RECEIVED FROM</div>` + edgeBlocks(ins, "from");
+  if (outs.length) h += `<div class="sec">SENT TO</div>` + edgeBlocks(outs, "to");
+  const mem = v.type === "deck" ? v.deck.m.map(i => NODES[i]) : v.type === "group" && v.lane !== "services" && v.kind !== "victim" ? v.members.map(i => NODES[i]) : null;
+  if (mem) {
+    mem.sort((a, b) => (b.h ? valueOf(b.h.asset, b.h.amt) : 0) - (a.h ? valueOf(a.h.asset, a.h.amt) : 0));
+    h += `<div class="sec">WALLETS (${mem.length})</div><div class="mlist">` + mem.slice(0, 150).map(n => `<div><button class="jump" data-open="${n.i}">${esc(short(n.a))}</button> ${n.h ? `<span class="tag ${n.h.st === "freezable" ? "acc" : ""}">${esc(heldLabel(n.h))}</span>` : ""}<br><span class="t">${esc(n.attr || "")}</span></div>`).join("") + (mem.length > 150 ? "<div>…</div>" : "") + "</div>";
+  }
+  if (v.type === "service" && v.node.members && v.node.members.length) {
+    h += `<div class="sec">ADDRESSES (${v.node.nm})</div><div class="mlist">` + v.node.members.map(m => `<div><a href="${esc(addrUrl(m.ch, m.a))}" target="_blank" rel="noopener">${esc(short(m.a))}</a> <span class="t">${esc(m.ch)}</span><br><span class="t">${esc(m.lab || "")}</span></div>`).join("") + "</div>";
+  }
+  dr.innerHTML = h;
+  dr.scrollTop = 0;
+  bindJumps();
+}
+function edgeDrawer(e) {
+  const a = V.byKey.get(e.f), b = V.byKey.get(e.t);
+  dr.innerHTML = `<h2>TRANSFERS</h2><div class="big"><button class="jump" data-k="${esc(a.key)}">${esc(vLabel(a))}</button> → <button class="jump" data-k="${esc(b.key)}">${esc(vLabel(b))}</button></div>
+    <div class="kv"><span>value</span><span>${usd(e.usd)}</span></div><div class="kv"><span>amount</span><span>${Object.keys(e.sums).map(x => full(+e.sums[x].toFixed(6)) + " " + esc(x)).join("<br>")}</span></div>
+    <div class="kv"><span>transfers</span><span>${e.rows.length}</span></div><div class="kv"><span>time</span><span>${esc(e.t0 || "")}${e.t1 !== e.t0 ? "<br>" + esc(e.t1) : ""}</span></div>
+    <div class="kv"><span>confidence</span><span>${CONF[e.conf]}</span></div><div class="sec">EACH TRANSFER</div>` + edgeBlocks([e], "to", true);
+  dr.scrollTop = 0;
+  bindJumps();
+}
+function openWallet(i) {
+  if (mode !== "wallets") setMode("wallets");
+  const d = deckOf.get(i);
+  if (d && !d.open) { d.open = true; rebuild(); }
+  const v = V.byKey.get("N:" + i);
+  if (v) selectNode(v, true);
+}
+
+/* ---------- view toggle, search, theme ---------- */
+function setMode(m) {
+  mode = m;
+  document.getElementById("vGroups").setAttribute("aria-pressed", m === "groups");
+  document.getElementById("vWallets").setAttribute("aria-pressed", m === "wallets");
+  sel = null; rebuild(); fit(); overview();
+}
+document.getElementById("vGroups").onclick = () => { history.replaceState(null, "", "#groups"); setMode("groups"); };
+document.getElementById("vWallets").onclick = () => { history.replaceState(null, "", "#wallets"); setMode("wallets"); };
+function findAndOpen(q) {
+  q = q.trim().toLowerCase();
+  if (q.length < 4) return false;
+  let i = NODES.findIndex(n => n.a && n.a.toLowerCase().includes(q));
+  if (i < 0) {
+    const r = ROWS.find(r => r[5] && r[5].toLowerCase().includes(q));
+    if (r) i = NODES[r[0]].k === "w" || NODES[r[0]].k === "otc" ? r[0] : r[1];
+  }
+  if (i < 0) return false;
+  openWallet(i);
+  return true;
+}
+document.getElementById("find").addEventListener("keydown", e => {
+  if (e.key !== "Enter") return;
+  const inp = e.target, q = inp.value.trim().toLowerCase();
+  if (q.length < 4) return;
+  if (findAndOpen(q)) { history.replaceState(null, "", "#find=" + encodeURIComponent(inp.value.trim())); return; }
+  inp.setCustomValidity("not found in the traced data"); inp.reportValidity(); setTimeout(() => inp.setCustomValidity(""), 1500);
+});
+const root = document.documentElement, themeBtn = document.getElementById("theme");
+function setTheme(t) {
+  if (t === "auto") delete root.dataset.theme; else root.dataset.theme = t;
+  themeBtn.textContent = "theme: " + t;
+  try { localStorage.setItem("trace-theme", t); } catch (_) {}
+}
+themeBtn.onclick = () => { const cur = root.dataset.theme || "auto"; setTheme(cur === "auto" ? "dark" : cur === "dark" ? "light" : "auto"); };
+try { const t = localStorage.getItem("trace-theme"); if (t) setTheme(t); } catch (_) {}
+
+document.getElementById("snap").innerHTML = `balances <b>${esc(D.snap.balances || "")}</b> · transfers to <b>${esc(md(D.snap.last_tx))} UTC</b> · built <b>${esc(D.snap.built)}</b>`;
+document.getElementById("rev").textContent = "rev 2 · " + D.snap.built;
+
+if (location.hash === "#wallets") { mode = "wallets"; document.getElementById("vGroups").setAttribute("aria-pressed", "false"); document.getElementById("vWallets").setAttribute("aria-pressed", "true"); }
+build(); layout(); draw(); fit(); overview();
+if (location.hash.startsWith("#find=")) { const q = decodeURIComponent(location.hash.slice(6)); document.getElementById("find").value = q; findAndOpen(q); }
+window.addEventListener("hashchange", () => { if (location.hash === "#wallets" && mode !== "wallets") setMode("wallets"); else if (location.hash === "#groups" && mode !== "groups") setMode("groups"); });
+
+/* ---------- transfers table ---------- */
+const E = window.TRACE_EDGES || [];
+const GL = Object.fromEntries(Object.entries(GROUPS).map(([g, v]) => [g, v.title]));
+const chains = [...new Set(E.map(e => e[0]))].sort();
+document.getElementById("fChain").innerHTML += chains.map(c => `<option>${esc(c)}</option>`).join("");
+let page = 0; const PER = 100;
+function filtered() {
+  const q = document.getElementById("q").value.trim().toLowerCase(), ch = document.getElementById("fChain").value, mn = +document.getElementById("fMin").value, hi = document.getElementById("fInt").checked;
+  return E.filter(e => (!hi || e[4] !== e[6]) && (!ch || e[0] === ch) && e[9] >= mn && (!q || (e[2] + " " + e[3] + " " + e[5] + " " + e[10]).toLowerCase().includes(q)));
+}
+const cell = (ch, a, g) => `<a href="${esc(addrUrl(ch, a))}" target="_blank" rel="noopener">${esc(short(a))}</a><br><span class="note">${esc(GL[g] || g)}</span>`;
+function renderTable() {
+  const rows = filtered(), pages = Math.max(1, Math.ceil(rows.length / PER));
+  page = Math.min(page, pages - 1);
+  document.querySelector("#tbl tbody").innerHTML = rows.slice(page * PER, page * PER + PER).map(e => `<tr><td>${esc(e[1])}</td><td>${esc(e[0])}</td><td>${cell(e[0], e[3], e[4])}</td><td>${cell(e[0], e[5], e[6])}</td><td class="n">${full(+(+e[8]).toFixed(4))} ${esc(e[7])}</td><td class="n">${usd(e[9])}</td><td>${esc(e[10])}</td><td>${e[2] ? `<a href="${esc(txUrl(e[0], e[2]))}" target="_blank" rel="noopener">${esc(short(e[2]))}</a>` : ""}</td></tr>`).join("");
+  document.getElementById("pinfo").textContent = `${rows.length.toLocaleString("en-US")} transfers · page ${page + 1} / ${pages}`;
+}
+["q", "fChain", "fMin", "fInt"].forEach(id => document.getElementById(id).addEventListener("input", () => { page = 0; renderTable(); }));
+document.getElementById("prev").onclick = () => { page = Math.max(0, page - 1); renderTable(); };
+document.getElementById("next").onclick = () => { page += 1; renderTable(); };
+renderTable();
 })();
 </script>
 </body>
