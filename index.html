@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CryptoBilis Drain Trace</title>
+<meta name="description" content="Independent on-chain trace of the October 2026 Ledger/CryptoBilis wallet drain: where the stolen funds went, built from public blockchain data.">
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --ink: #18202b; --muted: #5b6676; --line: #dfe3ea; --soft: #eef1f5;
+  --accent: #2f6fdb; --warn: #b4232c;
+  --k-victim: #8a94a6; --k-attacker: #d64545; --k-bridge: #3b7dd8; --k-swap: #17958a; --k-convert: #7b68d6;
+  --k-mixer: #9c3fc7; --k-exchange: #d4861a; --k-frozen: #2e9e5b; --k-unknown: #9aa0a6;
+  --edge: #9aa6b8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1319; --panel: #171d26; --ink: #e6ebf2; --muted: #9aa6b8; --line: #2a3340; --soft: #1f2732;
+    --accent: #6ea2ff; --warn: #ff7b84; --edge: #55627a;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1319; --panel: #171d26; --ink: #e6ebf2; --muted: #9aa6b8; --line: #2a3340; --soft: #1f2732;
+  --accent: #6ea2ff; --warn: #ff7b84; --edge: #55627a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+body { font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace; font-size: 0.86em; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 0 16px; }
+header { padding: 28px 0 8px; }
+h1 { font-size: 1.7rem; line-height: 1.2; margin: 0 0 6px; letter-spacing: -0.01em; }
+h2 { font-size: 1.2rem; margin: 0 0 12px; }
+h3 { font-size: 1rem; margin: 0 0 8px; }
+.sub { color: var(--muted); margin: 0; }
+.note { color: var(--muted); font-size: 0.86rem; }
+.chip { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--soft); border: 1px solid var(--line); font-size: 0.78rem; color: var(--muted); }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.kpi .v { font-size: 1.55rem; font-weight: 650; letter-spacing: -0.01em; }
+.kpi .l { color: var(--muted); font-size: 0.85rem; }
+.kpi .d { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin: 0 0 16px; }
+.graph-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; }
+.graph-layout > * { min-width: 0; }
+.card, .kpi { min-width: 0; }
+.toolbar input[type="search"] { min-width: 0 !important; width: 100%; }
+#cy { width: 100%; height: 760px; border-radius: 10px; background: var(--soft); border: 1px solid var(--line); }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+.toolbar label { font-size: 0.85rem; color: var(--muted); }
+select, input[type="search"], button { font: inherit; font-size: 0.88rem; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 5px 9px; }
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: 0.8rem; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; background: var(--c); }
+#panel { max-height: 820px; overflow: auto; }
+#panel .empty { color: var(--muted); }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-size: 0.88rem; margin: 8px 0 12px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; }
+table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--panel); }
+td.num, th.num { text-align: right; white-space: nowrap; }
+.tbl-wrap { overflow-x: auto; }
+.flows li { margin: 2px 0; }
+.flows { padding-left: 18px; margin: 4px 0 12px; font-size: 0.88rem; }
+.tag { display: inline-block; font-size: 0.72rem; padding: 0 6px; border-radius: 6px; border: 1px solid var(--line); color: var(--muted); }
+.tag.inf { border-color: var(--k-exchange); color: var(--k-exchange); }
+.tag.conf { border-color: var(--k-frozen); color: var(--k-frozen); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+ul.tight { margin: 0; padding-left: 18px; }
+ul.tight li { margin: 4px 0; }
+.pager { display: flex; gap: 8px; align-items: center; margin-top: 8px; font-size: 0.85rem; color: var(--muted); }
+footer { color: var(--muted); font-size: 0.82rem; padding: 12px 0 40px; }
+.theme-toggle { float: right; }
+@media (max-width: 980px) {
+  .graph-layout { grid-template-columns: 1fr; }
+  #panel { max-height: none; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid2 { grid-template-columns: 1fr; }
+}
+@media (max-width: 520px) {
+  .toolbar > * { max-width: 100%; }
+  .toolbar h2 { width: 100%; }
+  #cy { height: min(70vh, 600px); }
+  .kpi .v { font-size: 1.25rem; }
+  h1 { font-size: 1.35rem; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <button class="theme-toggle" id="themeBtn" title="Toggle light/dark">◐</button>
+    <h1>Where did the Ledger / CryptoBilis money go?</h1>
+    <p class="sub">An independent trace of the 9 October 2026 wallet drain (devices sold by the reseller CryptoBilis), rebuilt from public blockchain data across six chains.</p>
+    <p class="note" id="asof"></p>
+  </header>
+
+  <section class="kpis" id="kpis"></section>
+
+  <section class="card">
+    <div class="toolbar">
+      <h2 style="margin:0 12px 0 0">Money-flow map</h2>
+      <label for="minUsd">Hide flows under</label>
+      <select id="minUsd">
+        <option value="0">nothing</option>
+        <option value="50000">$50k</option>
+        <option value="250000" selected>$250k</option>
+        <option value="1000000">$1M</option>
+      </select>
+      <label><input type="checkbox" id="showLabels" checked> amounts on arrows</label>
+      <button id="fitBtn">Fit</button>
+    </div>
+    <div class="graph-layout">
+      <div>
+        <div id="cy" role="img" aria-label="Flow graph of stolen funds from victims through attacker wallets and services to their current location"></div>
+        <div class="legend" id="legend"></div>
+        <p class="note">Left to right: victims → drain wallets → laundering hops on TRON → cross-chain services → attacker wallets on Ethereum → exits. Arrow width scales with the dollar value moved (at the time of each transfer). Click any box or arrow for details and addresses.</p>
+      </div>
+      <aside id="panel" class="card" style="margin:0"><p class="empty">Select a node or an arrow in the map.</p></aside>
+    </div>
+  </section>
+
+  <section class="grid2">
+    <div class="card">
+      <h2>Key findings</h2>
+      <ul class="tight" id="findings">
+        <li><b>Most of the money is still visible.</b> About 82% of the stolen value sits in wallets the attacker controls, mostly as ETH and the 203.79 BTC that have never moved. Another 10% is frozen.</li>
+        <li><b>TRON USDT left TRON within hours</b> via THORChain, the USDT0 bridge, Relay, Chainflip, Bitget, HiFiSwap and NEAR Intents, and became ETH. Before that, $23M was cycled through USDD, which Tether cannot freeze.</li>
+        <li><b>Tornado Cash → Zcash → USDC round trip.</b> About 95% of the 6,837 ETH deposited into Tornado was traced back out. Most of it was swapped into shielded Zcash, and about $11M then came back as USDC/ETH through NEAR Intents (timing and amount match).</li>
+        <li><b>"Custodial" swap services are traceable.</b> Orders at HiFiSwap, Bitget, SWFT and Aeroswap match payouts 1:1 within seconds to minutes, at a constant exchange rate.</li>
+        <li><b>Cash-out has begun.</b> Deposits went to HitBTC, ChangeHero and Binance, and about $2.6M went to OTC-broker-like wallets on TRON.</li>
+        <li><b>The earliest attacker action was at 03:55 UTC</b>: a permission lock-out key on a TRON victim wallet, about an hour before the time previously reported.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>Leads for freezing &amp; attribution</h2>
+      <ul class="tight">
+        <li><b>Circle</b>: 2.38M USDC in two attacker wallets that has not been frozen: <span class="mono"><a href="https://etherscan.io/address/0x4600741e502866cba6f46f1ea1b2996015ff2a6a">0x4600…2a6a</a></span> and <span class="mono"><a href="https://etherscan.io/address/0x3635c6bc4927a9ff6654cfa15621186a909cee17">0x3635…ee17</a></span>.</li>
+        <li><b>Tether</b>: 1.35M USDT that has not been frozen, at <span class="mono"><a href="https://tronscan.org/#/address/TMAXFFdZQrciR412fcTU8GbSgvCiBLicYy">TMAXFF…BLicYy</a></span>.</li>
+        <li><b>NEAR Intents</b>: 800k USDT from two failed swaps was never refunded. Its refund address is the attacker's own wallet.</li>
+        <li><b>Binance</b>: an established deposit address, in use since March 2026, received 27 ETH: <span class="mono"><a href="https://etherscan.io/address/0x5D77E7B11aAbc3D9865855244738ea920EB6B211">0x5D77…B211</a></span>. This is the strongest identity lead.</li>
+        <li><b>Bybit</b>: a withdrawal on 24 Sep funded the attacker's TRON control wallet (tx <span class="mono"><a href="https://tronscan.org/#/transaction/b284a2542afed3f5e00a4f9370cae1a9675b94c29967d49d8c45819cb1d7686e">b284a254…</a></span>).</li>
+        <li><b>HitBTC, ChangeHero, Bitget, SWFT, Aeroswap, HiFiSwap, Relay, Chainflip</b>: their account and order records cover the deposits shown in the map. All exchanges should flag the BTC wallets and the Ethereum holding wallets.</li>
+      </ul>
+      <p class="note">If you are a victim: report to local police and to Ledger, and beware of "fund recovery" offers — they are a common follow-up scam.</p>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>All traced transfers</h2>
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Search address, tx hash or note" style="min-width:260px; flex:1">
+      <select id="fChain"><option value="">All chains</option></select>
+      <select id="fGroup"><option value="">All groups</option></select>
+      <select id="fMin">
+        <option value="0">Any amount</option>
+        <option value="10000">≥ $10k</option>
+        <option value="100000" selected>≥ $100k</option>
+        <option value="1000000">≥ $1M</option>
+      </select>
+      <label><input type="checkbox" id="fInternal" checked> hide hops between the attacker's own wallets</label>
+      <a href="data/transfers.csv" download>Download CSV</a>
+    </div>
+    <div class="tbl-wrap"><table id="tbl"><thead><tr>
+      <th>Time (UTC)</th><th>Chain</th><th>From</th><th>To</th><th class="num">Amount</th><th class="num">USD</th><th>Note</th><th>Tx</th>
+    </tr></thead><tbody></tbody></table></div>
+    <div class="pager"><button id="prev">‹ Prev</button><span id="pageInfo"></span><button id="next">Next ›</button></div>
+  </section>
+
+  <section class="card">
+    <h2>Method &amp; caveats</h2>
+    <ul class="tight">
+      <li><b>Data:</b> public block explorers and node APIs only (mempool.space, TronGrid, Blockscout, public RPCs for Ethereum, BNB Chain, Polygon and Solana) plus the public status APIs of Relay, NEAR Intents and LI.FI. THORChain swaps were resolved from the memos written on-chain.</li>
+      <li><b>Confidence:</b> transfers and balances are facts on-chain. Which wallets belong to the attacker is partly <span class="tag inf">inferred</span> from behaviour (fresh wallets that only relay attacker funds, matching timing/amounts) and marked as such in the address lists; addresses published by other researchers or linked by a service's own records are marked <span class="tag conf">confirmed</span>.</li>
+      <li><b>Mixers:</b> Tornado Cash deposits cannot be mathematically linked to their withdrawals. The links shown are either <span class="tag conf">confirmed</span>, meaning the withdrawals merged into known attacker wallets or a service's records tie them together, or <span class="tag inf">high-confidence</span> heuristics. Those heuristics combine the pool-flow excess over a baseline week, withdrawal bursts to fresh wallets, shared gas sources and identical onward swaps to Zcash.</li>
+      <li><b>Instant-swap services</b> without public order APIs (Bitget, SWFT, Aeroswap, HiFiSwap) were matched deposit-to-payout by timing and implied exchange rate. Every multi-order service matched 1:1.</li>
+      <li><b>Victims' privacy:</b> victim wallet addresses are deliberately not published here; victims appear only as per-chain totals.</li>
+      <li><b>Values:</b> USD amounts are estimates at the time of each transfer; balances "now" use current prices. Native BNB/POL movements are not covered (no keyless indexer), a gap of roughly $40k.</li>
+      <li>This is an independent analysis, not legal advice or an official statement by Ledger or any service mentioned. Corrections are welcome.</li>
+    </ul>
+  </section>
+
+  <footer id="foot"></footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
+<script src="data/graph.js"></script>
+<script src="data/edges.js"></script>
+<script>
+(function () {
+  const D = window.TRACE, E = window.TRACE_EDGES || [];
+  const G = D.groups;
+  const KINDS = { victim: "Victims", attacker: "Attacker wallets", bridge: "Cross-chain bridge", swap: "Instant swap service",
+    convert: "Conversion / DEX", mixer: "Mixer / privacy", exchange: "Exchange", frozen: "Frozen", unknown: "Unidentified" };
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const money = (x) => x >= 1e6 ? "$" + (x / 1e6).toFixed(x >= 1e8 ? 0 : 2) + "M" : x >= 1e3 ? "$" + Math.round(x / 1e3) + "k" : "$" + Math.round(x);
+  const num = (x, d) => Number(x).toLocaleString("en-US", { maximumFractionDigits: d == null ? 2 : d });
+  const short = (a) => a && a.length > 16 ? a.slice(0, 8) + "…" + a.slice(-6) : (a || "");
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const addrUrl = (chain, a) => (D.explorer[chain] || ["{}"])[0].replace("{}", a);
+  const txUrl = (chain, h) => (D.explorer[chain] || ["", "{}"])[1].replace("{}", h);
+
+  // theme toggle (per-viewer convenience)
+  const root = document.documentElement;
+  try { const t = localStorage.getItem("theme"); if (t) root.dataset.theme = t; } catch (e) {}
+  document.getElementById("themeBtn").onclick = () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("theme", root.dataset.theme); } catch (e) {}
+    restyle();
+  };
+
+  // header + KPIs
+  const K = D.kpi;
+  document.getElementById("asof").textContent = "Data as of " + K.built + " · balances refreshed by an automated wallet watch · prices: BTC $" + num(K.prices.bitcoin, 0) + ", ETH $" + num(K.prices.ethereum, 0);
+  const kp = [
+    [money(K.stolen_usd), "stolen", num(K.n_victims, 0) + " victim addresses on 6 chains (value at theft time)"],
+    [money(K.frozen_usd), "frozen by Tether", "USDT in 20 attacker wallets on TRON"],
+    [money(K.held_usd), "still in attacker wallets", num(K.held_btc, 2) + " BTC · " + num(K.held_eth, 0) + " ETH · " + num(K.held_usdc / 1e6, 2) + "M USDC" + (K.held_usdt_unfrozen ? " · " + num(K.held_usdt_unfrozen / 1e6, 2) + "M USDT" : "")],
+    [num(K.tornado_eth_in, 0) + " ETH", "sent into Tornado Cash", Math.round(100 * K.tornado_eth_back / K.tornado_eth_in) + "% traced back out (confirmed + high confidence), mostly into Zcash"],
+  ];
+  document.getElementById("kpis").innerHTML = kp.map(([v, l, d]) => `<div class="kpi"><div class="v">${esc(v)}</div><div class="l">${esc(l)}</div><div class="d">${esc(d)}</div></div>`).join("");
+  document.getElementById("foot").innerHTML = `Built ${esc(K.built)} from ${num(E.length, 0)} traced transfers. Overview flows aggregate transfers between groups; internal hops inside one group are not drawn. <a href="data/transfers.csv">transfers.csv</a>`;
+
+  // legend
+  document.getElementById("legend").innerHTML = Object.entries(KINDS).map(([k, l]) => `<span style="--c:var(--k-${k})">${l}</span>`).join("");
+
+  // graph
+  const maxUsd = Math.max(...D.edges.map((e) => e.usd));
+  const maxThr = Math.max(...D.nodes.map((n) => Math.max(n.usd_in, n.usd_out)));
+  const elements = [];
+  D.nodes.forEach((n) => {
+    const thr = Math.max(n.usd_in, n.usd_out);
+    let sub = n.status || "";
+    if (n.kind === "victim") sub = n.n_victims + " wallets · " + money(n.stolen_usd);
+    else if (!sub) sub = money(thr);
+    elements.push({ data: { id: n.id, label: n.label + "\n" + sub, kind: n.kind, size: 26 + 46 * Math.sqrt(thr / maxThr) }, position: { x: n.stage * 270, y: n.y * 108 } });
+  });
+  D.edges.forEach((e, i) => elements.push({ data: { id: "e" + i, source: e.source, target: e.target, usd: e.usd, w: 1.2 + 11 * Math.sqrt(e.usd / maxUsd), label: money(e.usd) } }));
+
+  const cy = cytoscape({
+    container: document.getElementById("cy"), elements, layout: { name: "preset", padding: 30 },
+    wheelSensitivity: 0.25, minZoom: 0.2, maxZoom: 3,
+  });
+  function restyle() {
+    const kc = (k) => css("--k-" + k);
+    cy.style([
+      { selector: "node", style: { "background-color": (n) => kc(n.data("kind")), width: "data(size)", height: "data(size)", label: "data(label)",
+        "font-size": 15, color: css("--ink"), "text-wrap": "wrap", "text-max-width": 190, "min-zoomed-font-size": 6, "text-valign": "bottom", "text-margin-y": 5,
+        "border-width": 2, "border-color": css("--panel"), "text-background-color": css("--soft"), "text-background-opacity": 0.85, "text-background-padding": 2 } },
+      { selector: "edge", style: { width: "data(w)", "line-color": css("--edge"), "target-arrow-color": css("--edge"), "target-arrow-shape": "triangle",
+        "curve-style": "bezier", opacity: 0.75, label: document.getElementById("showLabels").checked ? "data(label)" : "", "font-size": 12, color: css("--muted"),
+        "text-background-color": css("--soft"), "text-background-opacity": 0.9, "text-background-padding": 1, "text-rotation": "autorotate" } },
+      { selector: ".faded", style: { opacity: 0.12 } },
+      { selector: "edge.hl", style: { "line-color": css("--accent"), "target-arrow-color": css("--accent"), opacity: 1 } },
+      { selector: "node:selected", style: { "border-color": css("--accent"), "border-width": 4 } },
+      { selector: "edge:selected", style: { "line-color": css("--accent"), "target-arrow-color": css("--accent"), opacity: 1 } },
+    ]);
+  }
+  restyle();
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", restyle);
+  const applyMin = () => {
+    const m = +document.getElementById("minUsd").value;
+    cy.edges().forEach((e) => e.style("display", e.data("usd") >= m ? "element" : "none"));
+  };
+  document.getElementById("minUsd").onchange = applyMin;
+  document.getElementById("showLabels").onchange = restyle;
+  document.getElementById("fitBtn").onclick = () => cy.fit(undefined, 30);
+  applyMin();
+  cy.fit(undefined, 30);
+
+  cy.on("mouseover", "node", (ev) => {
+    const nb = ev.target.closedNeighborhood();
+    cy.elements().not(nb).addClass("faded");
+    nb.edges().addClass("hl");
+  });
+  cy.on("mouseout", "node", () => cy.elements().removeClass("faded hl"));
+
+  const panel = document.getElementById("panel");
+  const nodeById = Object.fromEntries(D.nodes.map((n) => [n.id, n]));
+  function flowList(list, dirKey) {
+    if (!list.length) return "<p class='note'>none</p>";
+    return "<ul class='flows'>" + list.sort((a, b) => b.usd - a.usd).map((e) =>
+      `<li>${dirKey === "in" ? "from" : "to"} <b>${esc(G[e[dirKey === "in" ? "source" : "target"]].label)}</b>: ${money(e.usd)} <span class="note">(${e.n} transfers, ${esc(e.assets.join(", "))})</span></li>`).join("") + "</ul>";
+  }
+  function membersTable(id) {
+    const m = D.members[id] || [];
+    if (!m.length) return "";
+    const rows = m.slice(0, 60).map((x) => {
+      const inferred = /inferred/i.test(x.role + " " + x.basis + " " + x.label);
+      const tag = x.role === "service" || /terminal|source|service|exchange_deposit|near_1click/.test(x.role) ? "" :
+        `<span class="tag ${inferred ? "inf" : "conf"}">${inferred ? "inferred" : "confirmed"}</span>`;
+      return `<tr><td class="mono"><a href="${esc(x.url || addrUrl(x.chain, x.address))}" target="_blank" rel="noopener">${esc(short(x.address))}</a><br><span class="note">${esc(x.chain)}</span></td>
+        <td>${esc(x.label || x.role)} ${tag}${x.basis ? `<br><span class="note">${esc(x.basis)}</span>` : ""}</td><td>${esc(x.balance || "")}</td></tr>`;
+    }).join("");
+    return `<h3>Addresses (${m.length}${m.length > 60 ? ", first 60 shown" : ""})</h3><div class="tbl-wrap"><table><thead><tr><th>Address</th><th>Role / basis</th><th>Balance</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+  function showNode(id) {
+    const n = nodeById[id];
+    const ins = D.edges.filter((e) => e.target === id), outs = D.edges.filter((e) => e.source === id);
+    let h = `<h2>${esc(n.label)}</h2><span class="chip">${esc(KINDS[n.kind] || n.kind)}</span>`;
+    h += `<dl class="kv"><dt>Flow in</dt><dd>${money(n.usd_in)}</dd><dt>Flow out</dt><dd>${money(n.usd_out)}</dd>${n.status ? `<dt>Now</dt><dd><b>${esc(n.status)}</b></dd>` : ""}</dl>`;
+    if (n.kind === "victim") {
+      h += `<p>${n.n_victims} victim wallets drained, about ${money(n.stolen_usd)} at the time.</p><p class="note">Stolen assets: ${Object.entries(n.assets).map(([a, v]) => num(v) + " " + esc(a)).join(", ")}. Individual victim addresses are not published.</p>`;
+    }
+    h += `<h3>Incoming</h3>${flowList(ins, "in")}<h3>Outgoing</h3>${flowList(outs, "out")}`;
+    h += `<p><button data-group="${esc(id)}" id="showTx">Show these transfers in the table ↓</button></p>`;
+    h += membersTable(id);
+    panel.innerHTML = h;
+    const b = document.getElementById("showTx");
+    if (b) b.onclick = () => { document.getElementById("fGroup").value = id; document.getElementById("fMin").value = "0"; page = 0; renderTable(); document.getElementById("tbl").scrollIntoView({ behavior: "smooth" }); };
+  }
+  function showEdge(ed) {
+    const e = D.edges[+ed.id().slice(1)];
+    panel.innerHTML = `<h2>${esc(G[e.source].label)} → ${esc(G[e.target].label)}</h2>
+      <dl class="kv"><dt>Value</dt><dd><b>${money(e.usd)}</b></dd><dt>Transfers</dt><dd>${e.n}</dd><dt>Assets</dt><dd>${esc(e.assets.join(", "))}</dd>
+      <dt>First</dt><dd>${esc(e.first || "")}</dd><dt>Last</dt><dd>${esc(e.last || "")}</dd></dl>
+      <p><button id="showTx2">Show these transfers in the table ↓</button></p>`;
+    document.getElementById("showTx2").onclick = () => { pairFilter = [e.source, e.target]; document.getElementById("fMin").value = "0"; page = 0; renderTable(); document.getElementById("tbl").scrollIntoView({ behavior: "smooth" }); };
+  }
+  cy.on("tap", "node", (ev) => showNode(ev.target.id()));
+  if (nodeById.eth_cluster) { cy.$id("eth_cluster").select(); showNode("eth_cluster"); }
+  cy.on("tap", "edge", (ev) => showEdge(ev.target));
+
+  // transfers table
+  const chains = [...new Set(E.map((e) => e[0]))].sort();
+  document.getElementById("fChain").innerHTML += chains.map((c) => `<option>${esc(c)}</option>`).join("");
+  const groupsUsed = [...new Set(E.flatMap((e) => [e[4], e[6]]))].filter((g) => G[g]).sort((a, b) => G[a].label.localeCompare(G[b].label));
+  document.getElementById("fGroup").innerHTML += groupsUsed.map((g) => `<option value="${esc(g)}">${esc(G[g].label)}</option>`).join("");
+  let page = 0, pairFilter = null;
+  const PER = 100;
+  function filtered() {
+    const q = document.getElementById("q").value.trim().toLowerCase();
+    const ch = document.getElementById("fChain").value, gr = document.getElementById("fGroup").value, mn = +document.getElementById("fMin").value;
+    const hideInt = document.getElementById("fInternal").checked;
+    return E.filter((e) => (!hideInt || e[4] !== e[6]) && (!ch || e[0] === ch) && (!gr || e[4] === gr || e[6] === gr) && e[9] >= mn &&
+      (!pairFilter || (e[4] === pairFilter[0] && e[6] === pairFilter[1])) &&
+      (!q || (e[2] + " " + e[3] + " " + e[5] + " " + e[10]).toLowerCase().includes(q)));
+  }
+  function cell(chain, a, g) {
+    return `<span class="mono"><a href="${esc(addrUrl(chain, a))}" target="_blank" rel="noopener">${esc(short(a))}</a></span><br><span class="note">${esc(G[g] ? G[g].label : g)}</span>`;
+  }
+  function renderTable() {
+    const rows = filtered();
+    const pages = Math.max(1, Math.ceil(rows.length / PER));
+    page = Math.min(page, pages - 1);
+    const slice = rows.slice(page * PER, page * PER + PER);
+    document.querySelector("#tbl tbody").innerHTML = slice.map((e) => `<tr><td class="mono">${esc(e[1])}</td><td>${esc(e[0])}</td>
+      <td>${cell(e[0], e[3], e[4])}</td><td>${cell(e[0], e[5], e[6])}</td><td class="num">${num(e[8], 4)} ${esc(e[7])}</td><td class="num">${money(e[9])}</td>
+      <td>${esc(e[10])}</td><td class="mono">${e[2] ? `<a href="${esc(txUrl(e[0], e[2]))}" target="_blank" rel="noopener">${esc(short(e[2]))}</a>` : ""}</td></tr>`).join("");
+    document.getElementById("pageInfo").textContent = `${num(rows.length, 0)} transfers${pairFilter ? " (filtered by arrow — change any filter to reset)" : ""} · page ${page + 1} / ${pages}`;
+  }
+  ["q", "fChain", "fGroup", "fMin", "fInternal"].forEach((id) => document.getElementById(id).addEventListener("input", () => { page = 0; pairFilter = null; renderTable(); }));
+  document.getElementById("prev").onclick = () => { page = Math.max(0, page - 1); renderTable(); };
+  document.getElementById("next").onclick = () => { page += 1; renderTable(); };
+  renderTable();
+})();
+</script>
+</body>
+</html>
