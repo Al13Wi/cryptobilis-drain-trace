@@ -161,7 +161,7 @@ td.n, th.n { text-align: right; white-space: nowrap; }
       <ul>
         <li><b>Most of the money is still visible.</b> About 82% of the stolen value sits in wallets the attacker controls, mostly ETH plus the 203.79 BTC that have never moved. Another 10% is frozen.</li>
         <li><b>TRON USDT left TRON within hours</b> via THORChain, the USDT0 bridge, Relay, Chainflip, Bitget, HiFiSwap and NEAR Intents, and became ETH. Before that, $23M was cycled through USDD, which Tether cannot freeze.</li>
-        <li><b>Tornado Cash → Zcash → USDC round trip.</b> About 95% of the ETH deposited into Tornado was traced back out. Most was swapped into shielded Zcash, and about $11M then came back as USDC/ETH through NEAR Intents (timing and amount match).</li>
+        <li><b>Tornado Cash → Zcash → USDC round trip.</b> <span data-torn="inn">…</span> has been deposited into Tornado so far, and deposits were still happening on 13 Oct. Of that, <span data-torn="out">…</span> (<span data-torn="pct">…</span>) was traced back out. Most was swapped into shielded Zcash, and about $11M then came back as USDC/ETH through NEAR Intents (timing and amount match).</li>
         <li><b>"Custodial" swap services are traceable.</b> Orders at HiFiSwap, Bitget, SWFT and Aeroswap match payouts 1:1 within seconds to minutes, at a constant exchange rate.</li>
         <li><b>Cash-out has begun.</b> Deposits went to HitBTC, ChangeHero and Binance, and about $2.6M went to OTC-broker-like wallets on TRON.</li>
         <li><b>The earliest attacker action was at 03:55 UTC</b>: a permission lock-out key on a TRON victim wallet, about an hour before the time previously reported.</li>
@@ -526,6 +526,12 @@ window.addEventListener("resize", () => { if (!sel) fit(); });
 /* ---------- drawer ---------- */
 const dr = document.getElementById("dr");
 const K = D.kpi;
+const TORN = (() => {
+  let inn = 0, out = 0;
+  ROWS.forEach(r => { if (r[4] !== "ETH") return; const f = NODES[r[0]].g, t = NODES[r[1]].g; if (t === "tornado" && f !== "tornado") inn += r[3]; if (f === "tornado" && t !== "tornado") out += r[3]; });
+  return { inn, out, pct: inn ? Math.round(100 * out / inn) : 0 };
+})();
+document.querySelectorAll("[data-torn]").forEach(el => { el.textContent = el.dataset.torn === "pct" ? TORN.pct + "%" : full(Math.round(TORN[el.dataset.torn])) + " ETH"; });
 function overview() {
   const services = {};
   ROWS.forEach(r => { [r[0], r[1]].forEach(i => { const n = NODES[i]; if (n.k === "s") services[n.title] = (services[n.title] || 0) + 1; }); });
@@ -537,6 +543,7 @@ function overview() {
     <div class="kv"><span>frozen by Tether</span><span><span class="tag">FROZEN</span>${amt(K.frozen_usdt)} USDT</span></div>
     <div class="kv"><span>held by attacker</span><span><span class="tag">HELD</span>${full(+K.held_btc.toFixed(4))} BTC<br>${full(+K.held_eth.toFixed(2))} ETH</span></div>
     <div class="kv"><span>freezable now</span><span><span class="tag acc">FREEZABLE</span>${amt(K.held_usdc)} USDC<br>${amt(K.unfrozen_usdt)} USDT</span></div>
+    <div class="kv"><span>Tornado Cash</span><span>${full(Math.round(TORN.inn))} ETH in<br>${full(Math.round(TORN.out))} ETH traced out (${TORN.pct}%)</span></div>
     <div class="kv"><span>balances read</span><span>${esc(D.snap.balances || D.snap.built)}</span></div>
     <div class="kv"><span>wallets · services</span><span>${nW} · ${nS}</span></div>
     <div class="kv"><span>transfers drawn</span><span>${ROWS.length}</span></div>
